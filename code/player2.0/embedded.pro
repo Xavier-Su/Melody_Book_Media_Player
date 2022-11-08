@@ -28,3 +28,5 @@ RESOURCES += \
 
 OTHER_FILES += \
     uart.ui~
+
+DISTFILES +=

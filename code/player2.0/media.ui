@@ -23,7 +23,7 @@ QWidget
 
 QPushButton,QMessageBox QPushButton
 {
-    font: 16px;
+    font: 20 12pt &quot;华文楷体&quot;;
     font-weight: bold;
     color: white;
     background-color:DimGray;
@@ -50,48 +50,78 @@ QLineEdit
 
 QListWidget
 {
-    background-color:rgba(238,245,252,0.8);/*???*/
-    border-style:solid;/*???? solid?? none??? inset/outset 3D??*/
-    border-width:2px; /*??????*/
-    border-radius:10px;/*????????*/
-    border-color:DimGray;/*????*/;/*????*/
+    background-color:rgba(238,245,252,0.6);
+    border-style:solid;
+    border-width:1px;
+    border-radius:10px;
+    border-color:DimGray;
+	font: 20 16pt &quot;华文楷体&quot;;
 
-    color: DimGray;/*????*/
-    padding:6px;/*??*/
+    color: DimGray;
+    padding:6px;
 }
 
+
+#list_lrc 
+{
+   /* background-color:rgba(238,245,252,0.8);???*/
+   /* border-style:solid;???? solid?? none??? inset/outset 3D??*/
+
+    border-width:0px; 
+    border-radius:20px;
+    border-color:DimGray;
+	font: 20 16pt &quot;华文楷体&quot;;
+
+    color: DimGray;
+    padding:6px;
+}
+
+#list_lrc::item:selected {
+
+	background-color:transparent;
+	color: rgb(0, 170, 0);
+
+	padding: 8px;
+
+}
+/*QScrollBar{width:12px;
+/*background-color: transparent;
+border-radius:4px;}*/
+
+
+
 QTextEdit {
-    background-color:rgb(238,245,252);/*???*/
+    background-color:rgb(238,245,252);
     border-style:solid;
-    border-width:2px; /*??????*/
-    border-radius:8px;/*????????*/
-    border-color:rgb(86,213,220);/*????*/
-    font-size:10pt;/*?? ????*/
-    color: black;/*????*/
-    padding:6px; /*??*/
+    border-width:2px; 
+    border-radius:8px;
+    border-color:rgb(86,213,220);
+    font-size:10pt;
+    color: black;
+    padding:6px;
 }
 QLabel {
     /*background-color:rgb(238,245,252);*/
-    border-radius:8px;/*????????*/
-    color:DimGray;/*????*/
+    border-radius:8px;
+    color:DimGray;
 
 }
 
 #lrc_now{
     /*background-color:rgb(238,245,252);*/
-    border-radius:8px;/*????????*/
+    border-radius:8px;
 	
 	font: 20pt &quot;华文行楷&quot;;
-    color:rgb(0, 170, 0);/*????*/;/*????*/
+    color:rgb(0, 170, 0);
 	/*text-decoration:underline;*/
 
 
 }
 #lrc_next{
     /*background-color:rgb(238,245,252);*/
-    border-radius:8px;/*????????*/
+    border-radius:8px;
 	font: 16pt &quot;华文行楷&quot;;
-	color:rgb(85, 170, 127);/*????*/;/*????*/
+	color:rgb(85, 170, 127);
 	/*text-decoration:underline;*/
 
 }
@@ -108,10 +138,6 @@ QMessageBox QLabel { /* textLabel */
 
 }
 
-/*QSlider::groove{
-*background-color:#3e3e3e;
-	border-radius:10px;}
-*/
 
 QSlider::handle:horizontal{
 	background-color:#909090;
@@ -125,15 +151,16 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
   <widget class="QPushButton" name="Add">
    <property name="geometry">
     <rect>
-     <x>790</x>
-     <y>400</y>
+     <x>750</x>
+     <y>450</y>
      <width>70</width>
      <height>40</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>-1</pointsize>
+     <family>华文楷体</family>
+     <pointsize>12</pointsize>
      <weight>75</weight>
      <italic>false</italic>
      <bold>true</bold>
@@ -209,8 +236,8 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
    </property>
    <property name="font">
     <font>
-     <family>AcadEref</family>
-     <pointsize>-1</pointsize>
+     <family>华文楷体</family>
+     <pointsize>12</pointsize>
      <weight>75</weight>
      <italic>false</italic>
      <bold>true</bold>
@@ -249,31 +276,38 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
   <widget class="QListWidget" name="listWidget">
    <property name="geometry">
     <rect>
-     <x>780</x>
-     <y>130</y>
-     <width>231</width>
-     <height>261</height>
+     <x>740</x>
+     <y>110</y>
+     <width>271</width>
+     <height>331</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <family>Noto Kufi Arabic</family>
-     <pointsize>12</pointsize>
+     <family>华文楷体</family>
+     <pointsize>16</pointsize>
+     <weight>2</weight>
+     <italic>false</italic>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="resizeMode">
+    <enum>QListView::Fixed</enum>
    </property>
   </widget>
   <widget class="QPushButton" name="delete_2">
    <property name="geometry">
     <rect>
      <x>930</x>
-     <y>400</y>
+     <y>450</y>
      <width>70</width>
      <height>40</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>-1</pointsize>
+     <family>华文楷体</family>
+     <pointsize>12</pointsize>
      <weight>75</weight>
      <italic>false</italic>
      <bold>true</bold>
@@ -286,15 +320,18 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>780</x>
-     <y>90</y>
+     <x>770</x>
+     <y>70</y>
      <width>211</width>
      <height>41</height>
     </rect>
    </property>
    <property name="font">
     <font>
+     <family>华文楷体</family>
      <pointsize>15</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
     </font>
    </property>
    <property name="text">
@@ -342,17 +379,18 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
   <widget class="QLabel" name="medianow">
    <property name="geometry">
     <rect>
-     <x>240</x>
-     <y>80</y>
+     <x>230</x>
+     <y>30</y>
      <width>561</width>
      <height>22</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>13</pointsize>
-     <weight>75</weight>
-     <bold>true</bold>
+     <family>华文行楷</family>
+     <pointsize>16</pointsize>
+     <weight>50</weight>
+     <bold>false</bold>
     </font>
    </property>
    <property name="text">
@@ -365,7 +403,7 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
   <widget class="QLabel" name="lrc_now">
    <property name="geometry">
     <rect>
-     <x>270</x>
+     <x>260</x>
      <y>390</y>
      <width>501</width>
      <height>31</height>
@@ -391,7 +429,7 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
   <widget class="QLabel" name="lrc_next">
    <property name="geometry">
     <rect>
-     <x>300</x>
+     <x>290</x>
      <y>430</y>
      <width>441</width>
      <height>31</height>
@@ -473,7 +511,8 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>-1</pointsize>
+     <family>华文楷体</family>
+     <pointsize>12</pointsize>
      <weight>75</weight>
      <italic>false</italic>
      <bold>true</bold>
@@ -481,6 +520,28 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
    </property>
    <property name="text">
     <string>三</string>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="list_lrc">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>60</y>
+     <width>391</width>
+     <height>331</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>华文楷体</family>
+     <pointsize>16</pointsize>
+     <weight>2</weight>
+     <italic>false</italic>
+     <bold>false</bold>
+    </font>
+   </property>
+   <property name="textElideMode">
+    <enum>Qt::ElideLeft</enum>
    </property>
   </widget>
   <zorder>label</zorder>
@@ -503,6 +564,7 @@ QSlider::sub-page{background-color:rgb(105,105,105);}</string>
   <zorder>next_song</zorder>
   <zorder>previous_song</zorder>
   <zorder>list_button</zorder>
+  <zorder>list_lrc</zorder>
  </widget>
  <resources/>
  <connections/>

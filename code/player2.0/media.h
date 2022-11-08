@@ -64,6 +64,7 @@ private slots:
     void on_previous_song_clicked();
 
     void on_list_button_clicked();
+    void handleTimeout();
 
 private:
     Ui::Media *ui;
