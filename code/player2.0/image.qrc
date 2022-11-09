@@ -5,5 +5,21 @@
         <file>2.jpg</file>
         <file>bj.jpg</file>
         <file>bj1.jpg</file>
+        <file>img/play.png</file>
+        <file>img/pause.png</file>
+        <file>img/rewind.png</file>
+        <file>img/skip-back.png</file>
+        <file>img/skip-forward.png</file>
+        <file>img/fast-forward.png</file>
+        <file>img/volume-up.png</file>
+        <file>img/volume-down.png</file>
+        <file>img/add-music.png</file>
+        <file>img/delete-music.png</file>
+        <file>img/music-menu.png</file>
+        <file>img/logout.png</file>
+        <file>img/logo.png</file>
+        <file>img/cd.png</file>
+        <file>img/music.jpg</file>
+        <file>img/cd2.png</file>
     </qresource>
 </RCC>

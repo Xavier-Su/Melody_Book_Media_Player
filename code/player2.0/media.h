@@ -28,6 +28,8 @@ public:
     explicit Media(QWidget *parent = 0);
     ~Media();
 
+
+
 private slots:
     void keyPressEvent(QKeyEvent *event);
 
@@ -65,6 +67,8 @@ private slots:
 
     void on_list_button_clicked();
     void handleTimeout();
+    void paintEvent(QPaintEvent *event);
+    void cd();
 
 private:
     Ui::Media *ui;
@@ -77,6 +81,8 @@ private:
     bool pause;
     QProcess *p;
     void play(const QString filename);
+    double angle;
+
 
 };
 

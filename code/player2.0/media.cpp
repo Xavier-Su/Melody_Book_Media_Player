@@ -11,17 +11,26 @@
 
 static QMap<QString, QString> map_lrc,map_lrc_time,map_song_path;
 static bool  pause=false;
+static QTimer *timer;
 static QTimer *Timer;
+static int lrc_mid=6;
 Media::Media(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::Media)
 {
 
     ui->setupUi(this);
-    setWindowTitle("筱风媒体播放器  -by素白");
+    setWindowTitle("音书v1.0  -by素白");
+    this->setWindowIcon(QIcon(":/img/logo.png"));
     QPalette pal =this->palette();
     pal.setBrush(QPalette::Background,QBrush(QPixmap(QCoreApplication::applicationDirPath()+"/bj1.jpg")));//背景图片
     setPalette(pal);
+
+//    timer = new QTimer(this);
+//    connect(timer,SLOT(timeout),this, SLOT(cd()));
+//    timer->start(100);
+
+
 
 
     playProcess =new QProcess(this);
@@ -35,6 +44,9 @@ Media::Media(QWidget *parent) :
 //    this->setStyleSheet(file.readAll());
     ui->list_lrc->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->list_lrc->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->Pause->setStyleSheet(tr("border-image: url(:/img/play.png);"));
+    ui->label->setStyleSheet(tr("border-image: url(:/img/music.jpg);"));
+    ui->label->hide();
 
 
 
@@ -43,7 +55,7 @@ Media::Media(QWidget *parent) :
 }
  static  QString notice="Which media will play";
  static  QString path="/media";
- static  QString type="video(*.mp4 *.avi *.mp3)";
+ static  QString type="video(*.mp4 *.avi *.mp3 *.m4a)";
 
 Media::~Media()
 {
@@ -55,7 +67,7 @@ void Media::on_Add_clicked()
 {
     this->update();
     //playProcess->kill();
-    //QStringList mediafile = QFileDialog::getOpenFileNames(this,"Which media will play","/home","video(*.mp4 *.wmv *.avi *.mp3)");
+    //QStringList mediafile = QFileDialog::getOpenFileNames(this,"Which media will play","/home","video(*.mp4 *.wmv *.avi *.mp3 *.m4a)");
     QStringList mediafile = QFileDialog::getOpenFileNames(this,notice,path,type);
     if(mediafile.length()<=0){
         return;
@@ -79,9 +91,6 @@ void Media::on_Add_clicked()
             new QListWidgetItem(re.cap(0),ui->listWidget);
 
           }
-
-
-
     }
 
     if(mediafile.count()!=0){
@@ -100,6 +109,7 @@ static int m=0;
 static int s=0;
 static int d=0;
 void Media::play(QString filename){
+    ui->Pause->setStyleSheet(tr("border-image: url(:/img/pause.png);"));
     pause=false;
     Timer->stop();
     int lrc_row=0;
@@ -114,6 +124,7 @@ void Media::play(QString filename){
     ui->list_lrc->clear();
     ui->lrc_now->clear();
     ui->lrc_next->clear();
+    ui->medianow->clear();
 
 
 
@@ -157,7 +168,7 @@ void Media::play(QString filename){
         file.open(QIODevice::ReadOnly | QIODevice::Text);
         QString line="";
 
-        for (int i=0;i<8;i++) {
+        for (int i=0;i<lrc_mid;i++) {
             new QListWidgetItem(" ",ui->list_lrc);
         }
         while((line=file.readLine())>0){
@@ -176,7 +187,7 @@ void Media::play(QString filename){
 
               }
         }
-        for (int i=0;i<8;i++) {
+        for (int i=0;i<lrc_mid;i++) {
             new QListWidgetItem(" ",ui->list_lrc);
         }
     }
@@ -239,11 +250,15 @@ void Media::on_Pause_clicked()
     this->playProcess->write("pause\n");
 //    qDebug()<<"pause"<<pause;
     if(pause){
+        ui->Pause->setStyleSheet(tr("border-image: url(:/img/play.png);"));
         Timer->stop();
         disconnect(playProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(redate()));
 
     }
     if(!pause){
+        ui->Pause->setStyleSheet(tr("border-image: url(:/img/pause.png);"));
+
+
         Timer->start(100);
         connect(playProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(redate()));
 
@@ -341,9 +356,7 @@ void Media::redate(){
            mins=QString::number(int(Str.toDouble())/60,10); secs=QString::number(int(Str.toDouble())%60,10);
            ds=QString::number((Str.toDouble()-qFloor(int(Str.toDouble())))*10);
 
-
            ui->timetext->setText(mins+":"+secs);
-
 
            QString timetips="";
            if (secs.toInt()<10){
@@ -368,20 +381,18 @@ void Media::redate(){
 //                   int set_row=ui->list_lrc->row(str_lrc_list.at(0));
 
                    set_row++;
-                   int row_now=map_lrc_time.value(timetips).toInt()+8;
+                   int row_now=map_lrc_time.value(timetips).toInt()+lrc_mid;
 
-                    if(row_now<ui->list_lrc->count()-8)
+                    if(row_now<ui->list_lrc->count()-lrc_mid)
                     {
                         ui->list_lrc->setCurrentRow(row_now);
-                        if (row_now>8){ui->list_lrc->verticalScrollBar()->setValue(row_now-8);}
+                        if (row_now>lrc_mid){ui->list_lrc->verticalScrollBar()->setValue(row_now-lrc_mid);}
                     }
 
                    ui->lrc_now->setText(time_lrc);
 //                   qDebug()<<"row_now"<<row_now-8<<"map_lrc.count()-1"<<map_lrc.value((iter+1).key());
 
-
-
-                    if(row_now-8<(map_lrc.count()-1)){ui->lrc_next->setText(map_lrc.value((iter+1).key()));}
+                    if(row_now-lrc_mid<(map_lrc.count()-1)){ui->lrc_next->setText(map_lrc.value((iter+1).key()));}
                     else{ui->lrc_next->clear();}
 //
                }
@@ -399,11 +410,6 @@ void Media::redate(){
 
             min2s=QString::number(int(Time.toDouble())/60,10); sec2s=QString::number(int(Time.toDouble())%60,10);
            //qDebug()<<min2s<<":"<<sec2s<<endl;
-
-
-
-
-
 
 //           qDebug()<<timetips<<":"<<time_lrc<<endl;
 
@@ -512,15 +518,21 @@ void Media::on_list_button_clicked()
     if(!list_if)
     {
         ui->listWidget->hide();
+        ui->label_2->hide();
+        ui->label->show();
+
         }
     else {
         ui->listWidget->show();
+        ui->label_2->show();
+        ui->label->hide();
 }
 
 }
 
 void Media::handleTimeout()
 {
+    cd();
 //    qDebug()<<"Enter timeout processing function\n";
 //    QString sec="";
 //    QString min="";
@@ -569,4 +581,44 @@ void Media::handleTimeout()
 
 
 }
+static bool paint=false;
+void Media::paintEvent(QPaintEvent *event)
+{
+    if(!paint){return;}
 
+    Q_UNUSED(event)
+    QPainter painter(this);
+
+    painter.setPen(Qt::NoPen);
+
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    QPoint centerPoint = rect().center();
+    centerPoint.setY(245);
+
+    painter.save();
+    painter.translate(centerPoint);
+    int radius = 60;
+    QPen pen;
+    pen.setColor(Qt::gray);
+    pen.setWidth(1);
+    painter.setPen(pen);
+    painter.drawEllipse(QPoint(0, 0), radius, radius);
+
+    QRect rect = QRect(-radius, -radius,
+                       radius*2, radius*2);
+
+    pen.setColor(Qt::blue);
+    painter.setPen(pen);
+    QRegion maskedRegion(rect, QRegion::Ellipse);
+    painter.setClipRegion(maskedRegion);
+    painter.rotate(angle);
+
+    painter.drawPixmap(rect,QPixmap(":/img/cd2.png"));
+    painter.restore();
+}
+void Media::cd()
+{
+    angle += 2;
+    if(angle == 360.0)angle = 0.0;
+    update();
+}
