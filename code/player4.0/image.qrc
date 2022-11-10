@@ -21,5 +21,8 @@
         <file>img/cd.png</file>
         <file>img/music.jpg</file>
         <file>img/cd2.png</file>
+        <file>bg2.png</file>
+        <file>img/new-skin.png</file>
+        <file>img/cd_circle.png</file>
     </qresource>
 </RCC>

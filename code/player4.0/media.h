@@ -57,8 +57,6 @@ private slots:
 
     void on_horizontalSlider_sliderReleased();
 
-    void on_horizontalSlider_valueChanged(int value);
-
     void on_horizontalSlider_sliderPressed();
 
     void on_next_song_clicked();
@@ -69,6 +67,11 @@ private slots:
     void handleTimeout();
     void paintEvent(QPaintEvent *event);
     void cd();
+
+    void on_change_skin_clicked();
+
+    void on_cd_circle_clicked();
+    void msg_inf();
 
 private:
     Ui::Media *ui;

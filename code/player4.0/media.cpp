@@ -2,6 +2,7 @@
 #include "media.h"
 #include "ui_media.h"
 #include<QPushButton>
+#include <QMessageBox>
 #include<qdebug.h>
 #include "lrc_read.h"
 #include <QFile>
@@ -14,6 +15,10 @@ static bool  pause=false;
 static QTimer *timer;
 static QTimer *Timer;
 static int lrc_mid=6;
+static bool paint=false;
+static bool cd_show=false;
+static bool cd_pause=true;
+static bool play_state=false;
 Media::Media(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::Media)
@@ -24,38 +29,37 @@ Media::Media(QWidget *parent) :
     this->setWindowIcon(QIcon(":/img/logo.png"));
     QPalette pal =this->palette();
     pal.setBrush(QPalette::Background,QBrush(QPixmap(QCoreApplication::applicationDirPath()+"/bj1.jpg")));//背景图片
+//    pal.setBrush(QPalette::Background,QBrush(QPixmap(QCoreApplication::applicationDirPath()+"/bg2.png")));//背景图片
+
     setPalette(pal);
 
-//    timer = new QTimer(this);
-//    connect(timer,SLOT(timeout),this, SLOT(cd()));
-//    timer->start(100);
-
-
-
+    //    timer = new QTimer(this);
+    //    connect(timer,SLOT(timeout),this, SLOT(cd()));
+    //    timer->start(100);
 
     playProcess =new QProcess(this);
-//    connect(playProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(redate()));
-//    QTimer *Timer;
+
     Timer = new QTimer(this);
     connect(Timer, SIGNAL(timeout()), this, SLOT(handleTimeout()));
     Timer->start(100);
-//    QFile file(":/youjing.qss");
-//    file.open(QFile::ReadOnly);
-//    this->setStyleSheet(file.readAll());
+    //    QFile file(":/youjing.qss");
+    //    file.open(QFile::ReadOnly);
+    //    this->setStyleSheet(file.readAll());
     ui->list_lrc->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->list_lrc->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->Pause->setStyleSheet(tr("border-image: url(:/img/play.png);"));
-    ui->label->setStyleSheet(tr("border-image: url(:/img/music.jpg);"));
+    ui->label->setStyleSheet(tr("border-image: url(:/img/logo.png);"));
     ui->label->hide();
-
-
-
+    ui->horizontalSlider->setTracking(false);
 
 
 }
- static  QString notice="Which media will play";
- static  QString path="/media";
- static  QString type="video(*.mp4 *.avi *.mp3 *.m4a)";
+static  QString notice="Which media will be played";
+static  QString path="/media";
+static  QString type="video(*.mp4 *.avi *.mp3 *.m4a)";
+static  QString notice_skin="Please select a 1024x600 image";
+static  QString type_skin="images(*.jpg *.png)";
+
 
 Media::~Media()
 {
@@ -67,7 +71,6 @@ void Media::on_Add_clicked()
 {
     this->update();
     //playProcess->kill();
-    //QStringList mediafile = QFileDialog::getOpenFileNames(this,"Which media will play","/home","video(*.mp4 *.wmv *.avi *.mp3 *.m4a)");
     QStringList mediafile = QFileDialog::getOpenFileNames(this,notice,path,type);
     if(mediafile.length()<=0){
         return;
@@ -75,40 +78,35 @@ void Media::on_Add_clicked()
 
     QRegExp re("[^/.\w+.]+");
 
-
     for (int i=0;i<mediafile.count();i++)
     {
         QFileInfo fileInfo = QFileInfo(mediafile.at(i));
         QString media_name = fileInfo.fileName();
-//        qDebug()<<"54848"<<media_name;
-
         qDebug()<<"media_name"<<media_name;
         if(media_name.indexOf(re) >= 0)
-          {
-
-//            qDebug()<<"re.cap(0)"<<re.cap(0);
+        {
             map_song_path.insert(re.cap(0),mediafile.at(i));
             new QListWidgetItem(re.cap(0),ui->listWidget);
 
-          }
+        }
     }
 
     if(mediafile.count()!=0){
 
-//        ui->listWidget->addItems(mediafile);
+        //        ui->listWidget->addItems(mediafile);
 
     }
 
-//    play(mediafile.at(0));
+    //    play(mediafile.at(0));
     this->update();
 }
-
 
 
 static int m=0;
 static int s=0;
 static int d=0;
 void Media::play(QString filename){
+
     ui->Pause->setStyleSheet(tr("border-image: url(:/img/pause.png);"));
     pause=false;
     Timer->stop();
@@ -125,16 +123,14 @@ void Media::play(QString filename){
     ui->lrc_now->clear();
     ui->lrc_next->clear();
     ui->medianow->clear();
-
-
-
-
     ui->lrc_now->clear();
+
+
     int counter =ui->list_lrc->count();
     for(int index = 0;index < counter; index++)
     {
         QListWidgetItem *item = ui->list_lrc->takeItem(0);
-            delete item;
+        delete item;
     }
 
     QMap<QString, QString>::iterator iter = map_lrc.begin();
@@ -145,26 +141,21 @@ void Media::play(QString filename){
     }
 
     if(1){
-
-
         QFileInfo fileInfo = QFileInfo(filename);
 
         QString fileSuffix = fileInfo.suffix();
         QString lrc_name=filename;
         lrc_name.replace(fileSuffix,"lrc");
-//        qDebug()<<" lrc "<<lrc_name;
-
-
 
         QFile file(lrc_name);
         if(file.exists()){
-           qDebug()<<"open lrc ok";
-         }
-         else{
-           qDebug()<<"open lrc error";
-           ui->lrc_now->setText("暂无歌词");
-           ui->lrc_next->setText("");
-         }
+            qDebug()<<"open lrc ok";
+        }
+        else{
+            qDebug()<<"open lrc error";
+            ui->lrc_now->setText("暂无歌词");
+            ui->lrc_next->setText("");
+        }
         file.open(QIODevice::ReadOnly | QIODevice::Text);
         QString line="";
 
@@ -174,28 +165,24 @@ void Media::play(QString filename){
         while((line=file.readLine())>0){
             QRegExp re("[0-9]{2}:[0-9]{2}.[0-9]{1}");
             if(line.indexOf(re) >= 0)
-              {
+            {
                 QString lrc_time= re.cap(0);
                 QString lrc_text=line.section(QRegExp("[]\s^\n]"),1,1);
 
                 map_lrc.insert(lrc_time, lrc_text);
                 map_lrc_time.insert(lrc_time,QString::number(lrc_row));
                 lrc_row++;
-//                ui->list_lrc->addItem(lrc_text);
                 QListWidgetItem *item_now = new QListWidgetItem(lrc_text,ui->list_lrc);
                 item_now ->setTextAlignment(Qt::AlignCenter);
 
-              }
+            }
         }
         for (int i=0;i<lrc_mid;i++) {
             new QListWidgetItem(" ",ui->list_lrc);
         }
     }
 
-
-
-
-    QString program =QCoreApplication::applicationDirPath()+"\\mplayer\\mplayer.exe";
+    QString program =QCoreApplication::applicationDirPath()+"/mplayer/mplayer.exe";
     QStringList commond;
     commond << filename;
     commond << "-zoom";
@@ -207,23 +194,21 @@ void Media::play(QString filename){
     commond << "-quiet";//静默
     QFileInfo fileInfo = QFileInfo(filename);
     QString media_name = fileInfo.fileName();
-//    qDebug()<<"54848"<<media_name;
 
-//    QRegExp re("([\^<>/\\\\|:""\\*\\?]+)\\.\\w+$");
 
     QRegExp re("[^/.\w+.]+");
     if(media_name.indexOf(re) >= 0)
-      {
+    {
         media_name= re.cap(0);
-      }
-
+    }
     ui->medianow->setText("正在播放: "+media_name);
 
     this->playProcess->start(program,commond);
-//    this->playProcess->waitForStarted(3000);
+    play_state=true;
+    cd_pause=false;
+
     connect(playProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(redate()));
     this->playProcess->write("get_time_length\n");
-//    Timer->stop();
     Timer->start(100);
 
 
@@ -231,7 +216,7 @@ void Media::play(QString filename){
 
 void Media::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
 {
-//    this->playProcess->kill();
+    //    this->playProcess->kill();
     play(map_song_path.value(item->text()));
 }
 
@@ -245,27 +230,25 @@ void Media::on_delete_2_clicked()
 
 void Media::on_Pause_clicked()
 {
+    if((ui->listWidget->count()==0) && (play_state==false)){
+        msg_inf();
+        return;
+
+    }
+
     pause=!pause;
-//    Timer->stop();
     this->playProcess->write("pause\n");
-//    qDebug()<<"pause"<<pause;
     if(pause){
+        cd_pause=true;
         ui->Pause->setStyleSheet(tr("border-image: url(:/img/play.png);"));
         Timer->stop();
         disconnect(playProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(redate()));
-
     }
     if(!pause){
+        cd_pause=false;
         ui->Pause->setStyleSheet(tr("border-image: url(:/img/pause.png);"));
-
-
         Timer->start(100);
         connect(playProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(redate()));
-
-
-//        playProcess->write("get_time_length\n");//发命令，cmd命令
-//        playProcess->write("get_time_pos\n");
-//        playProcess->write("get_percent_pos\n");
     }
 
 
@@ -277,20 +260,16 @@ void Media::on_Pause_clicked()
 void Media::on_Forward_clicked()
 {
     this->playProcess->write("seek +10 0\n");
-
 }
 void Media::on_next_song_clicked()
 {
-        int row = ui->listWidget->currentRow();
-        int count=ui->listWidget->count();
-        if (row>count-2){ui->listWidget->setCurrentRow(0);}
-        else{ui->listWidget->setCurrentRow(row+1);}
-//        qDebug()<<"row="<<row<<"count"<<count;
+    int row = ui->listWidget->currentRow();
+    int count=ui->listWidget->count();
+    if (row>count-2){ui->listWidget->setCurrentRow(0);}
+    else{ui->listWidget->setCurrentRow(row+1);}
+    QString item = ui->listWidget->currentItem()->text();
+    play(map_song_path.value(item));
 
-        QString item = ui->listWidget->currentItem()->text();
-
-        play(map_song_path.value(item));
-//      qDebug()<<"row="<<row<<item;
 }
 
 void Media::on_Backward_clicked()
@@ -312,12 +291,14 @@ void Media::on_previous_song_clicked()
 void Media::on_volumeup_clicked()
 {
     this->playProcess->write("volume +5\n");
+
 }
 
 
 void Media::on_volumedown_clicked()
 {
     this->playProcess->write("volume -5\n");
+
 }
 
 void Media::on_Exit_clicked()
@@ -329,105 +310,81 @@ void Media::on_Exit_clicked()
 }
 
 static QString pre_lrc="";
-static int set_row=7;
 static QString mins;static QString min2s;
 static QString secs;static QString sec2s;
 static QString ds;
 void Media::redate(){
 
-//    this->playProcess->write("get_time_length\n");
-//    this->playProcess->write("get_time_pos\n");
-//    this->playProcess->write("get_percent_pos\n");
+    //    this->playProcess->write("get_time_length\n");
+    //    this->playProcess->write("get_time_pos\n");
+    //    this->playProcess->write("get_percent_pos\n");
 
     while(this->playProcess->canReadLine())
     {
         QByteArray order=this->playProcess->readLine();
-//         qDebug()<<"order"<<order;
-
 
         if(order.startsWith("ANS_TIME_POSITION"))
         {
-           order.replace(QByteArray("\n"),QByteArray(""));
-           QString content(order);
-           Str=content.mid(18).simplified();
-//           qDebug()<<"Str"<<Str;
-           int tim=qFloor(Str.toDouble());
-           ui->horizontalSlider->setValue(tim);
-           mins=QString::number(int(Str.toDouble())/60,10); secs=QString::number(int(Str.toDouble())%60,10);
-           ds=QString::number((Str.toDouble()-qFloor(int(Str.toDouble())))*10);
+            order.replace(QByteArray("\n"),QByteArray(""));
+            QString content(order);
+            Str=content.mid(18).simplified();
+            int time_position=qFloor(Str.toDouble());
+            ui->horizontalSlider->setValue(time_position);
 
-           ui->timetext->setText(mins+":"+secs);
+            mins=QString::number(int(Str.toDouble())/60,10);
+            secs=QString::number(int(Str.toDouble())%60,10);
+            ds=QString::number((Str.toDouble()-qFloor(int(Str.toDouble())))*10);
+            ui->timetext->setText(mins+":"+secs);
 
-           QString timetips="";
-           if (secs.toInt()<10){
-               timetips="0"+mins+":"+"0"+secs+"."+ds;
-           }else {
-               timetips="0"+mins+":"+secs+"."+ds;
-           }
-//           qDebug()<<"mins"<<mins<<"secs"<<secs<<"ds"<<ds<<"timetips"<<timetips;
-           QString time_lrc=map_lrc.value(timetips);
-//           ui->lrc_now->setText(time_lrc);
+            QString timetips="";
+            if (secs.toInt()<10){
+                timetips="0"+mins+":"+"0"+secs+"."+ds;
+            }else {
+                timetips="0"+mins+":"+secs+"."+ds;
+            }
 
-           QMap<QString, QString>::iterator iter = map_lrc.begin();
-           while (iter != map_lrc.end())
-           {
-               if(iter.key()==timetips)
-               {
+            QString time_lrc=map_lrc.value(timetips);
+            QMap<QString, QString>::iterator iter = map_lrc.begin();
+            while (iter != map_lrc.end())
+            {
+                if(iter.key()==timetips)
+                {
+                    QList<QListWidgetItem *> str_lrc_list;
+                    if(pre_lrc==time_lrc){return;}
+                    str_lrc_list=ui->list_lrc->findItems(time_lrc,Qt::MatchExactly);
+                    pre_lrc=time_lrc;
 
-                   QList<QListWidgetItem *> str_lrc_list;
-                   if(pre_lrc==time_lrc){return;}
-                   str_lrc_list=ui->list_lrc->findItems(time_lrc,Qt::MatchExactly);
-                   pre_lrc=time_lrc;
-//                   int set_row=ui->list_lrc->row(str_lrc_list.at(0));
-
-                   set_row++;
-                   int row_now=map_lrc_time.value(timetips).toInt()+lrc_mid;
-
+                    int row_now=map_lrc_time.value(timetips).toInt()+lrc_mid;
                     if(row_now<ui->list_lrc->count()-lrc_mid)
                     {
                         ui->list_lrc->setCurrentRow(row_now);
                         if (row_now>lrc_mid){ui->list_lrc->verticalScrollBar()->setValue(row_now-lrc_mid);}
                     }
 
-                   ui->lrc_now->setText(time_lrc);
-//                   qDebug()<<"row_now"<<row_now-8<<"map_lrc.count()-1"<<map_lrc.value((iter+1).key());
-
+                    ui->lrc_now->setText(time_lrc);
                     if(row_now-lrc_mid<(map_lrc.count()-1)){ui->lrc_next->setText(map_lrc.value((iter+1).key()));}
                     else{ui->lrc_next->clear();}
-//
-               }
-                   iter++;
-           }
+
+                }
+                iter++;
+            }
 
         }
         else if((order.startsWith("ANS_LENGTH")))
         {
-           order.replace(QByteArray("\n"),QByteArray(""));
-           QString content(order);
-           Time=content.mid(11).simplified();
-
-           //qDebug()<<mins<<":"<<secs<<endl;
-
+            order.replace(QByteArray("\n"),QByteArray(""));
+            QString content(order);
+            Time=content.mid(11).simplified();
             min2s=QString::number(int(Time.toDouble())/60,10); sec2s=QString::number(int(Time.toDouble())%60,10);
-           //qDebug()<<min2s<<":"<<sec2s<<endl;
-
-//           qDebug()<<timetips<<":"<<time_lrc<<endl;
-
-
-           ui->timetext_2->setText(min2s+":"+sec2s);
-
-
-           ui->horizontalSlider->setRange(0,qFloor(Time.toDouble()));
+            ui->timetext_2->setText(min2s+":"+sec2s);
+            ui->horizontalSlider->setRange(0,qFloor(Time.toDouble()));
         }
-        if((mins.toInt()*60+secs.toInt())==(min2s.toInt()*60+sec2s.toInt()-2))
-        {on_next_song_clicked();
-        mins="0";secs="0";min2s="0";sec2s="0";
+        if((mins.toInt()*60+secs.toInt())==(min2s.toInt()*60+sec2s.toInt()-1))
+        {   mins="0";secs="0";min2s="0";sec2s="0";
+            on_next_song_clicked();
 
         }
-//        qDebug()<<mins.toInt()*60+secs.toInt()<<"min2s.toInt"<<min2s.toInt()*60+sec2s.toInt()-2<<endl;
-
     }
-
 }
 
 //  Esc关闭播放窗口
@@ -461,16 +418,20 @@ void Media::keyPressEvent(QKeyEvent *event){
     case Qt::Key_I://音量大
         on_volumeup_clicked();
         break;
-    case Qt::Key_O:
-           ui->horizontalSlider->hide();
-           ui->timetext->hide();
-           ui->timetext_2->hide();
-           break;
-       case Qt::Key_U:
-           ui->horizontalSlider->show();
-           ui->timetext->show();
-           ui->timetext_2->hide();
-           break;
+    case Qt::Key_O://歌词关
+//        ui->horizontalSlider->hide();
+//        ui->timetext->hide();
+//        ui->timetext_2->hide();
+        ui->lrc_now->hide();
+        ui->lrc_next->hide();
+        break;
+    case Qt::Key_U://歌词开
+//        ui->horizontalSlider->show();
+//        ui->timetext->show();
+//        ui->timetext_2->show();
+        ui->lrc_now->show();
+        ui->lrc_next->show();
+        break;
 
     }
 }
@@ -482,31 +443,19 @@ static int tips=0;
 void Media::on_horizontalSlider_sliderMoved(int position)
 {
     tips=position;
-//        qDebug()<<QString::number(tips)<<":"<<QString::number(position)<<endl;
-
 }
 
 void Media::on_horizontalSlider_sliderReleased()
 {
-
-        this->playProcess->write(QString("seek "+QString::number(tips)+" 2\n").toUtf8());
-        on_Pause_clicked();
-//        qDebug()<<"Released"<<QString::number(tips)<<endl;
+    this->playProcess->write(QString("seek "+QString::number(tips)+" 2\n").toUtf8());
+    on_Pause_clicked();
 }
 
-void Media::on_horizontalSlider_valueChanged(int value)
-{
-    ui->horizontalSlider->setTracking(false);
-//    if(ui->horizontalSlider->value()!=value)
-//    {this->playProcess->write(QString("seek "+QString::number(value)+" 2\n").toUtf8());}
-//    qDebug() << "ui->horizontalSlider->value()" << ui->horizontalSlider->value();
-//    qDebug() << "valueChanged" << value;
 
-}
 
 void Media::on_horizontalSlider_sliderPressed()
 {           on_Pause_clicked();
-            qDebug()<<"Pressed"<<QString::number(ui->horizontalSlider->value())<<endl;
+            //qDebug()<<"Pressed"<<QString::number(ui->horizontalSlider->value())<<endl;
 }
 
 
@@ -521,67 +470,30 @@ void Media::on_list_button_clicked()
         ui->label_2->hide();
         ui->label->show();
 
-        }
+    }
     else {
         ui->listWidget->show();
         ui->label_2->show();
         ui->label->hide();
-}
+    }
 
 }
 
 void Media::handleTimeout()
 {
     cd();
-//    qDebug()<<"Enter timeout processing function\n";
-//    QString sec="";
-//    QString min="";
-//    d++;
-//    if(d>=10){d=0;s++;}
-//    if(s>=60){s=0;m++;}
-//    if(m>=60){m=0;}
-//    if(s<10){sec="0"+QString::number(s);}else{sec=QString::number(s);}
-//    if(m<10){min="0"+QString::number(m);}else{min=QString::number(m);}
-
+    //    QString sec="";
+    //    QString min="";
+    //    d++;
+    //    if(d>=10){d=0;s++;}
+    //    if(s>=60){s=0;m++;}
+    //    if(m>=60){m=0;}
+    //    if(s<10){sec="0"+QString::number(s);}else{sec=QString::number(s);}
+    //    if(m<10){min="0"+QString::number(m);}else{min=QString::number(m);}
     this->playProcess->write("get_time_pos\n");
 
-//    QString timetips=min+":"+sec+"."+QString::number(d);
-////    qDebug()<<"timetips"<<timetips;
-//    QString time_lrc=map_lrc.value(timetips);
-////           ui->lrc_now->setText(time_lrc);
-
-//    QMap<QString, QString>::iterator iter = map_lrc.begin();
-//    while (iter != map_lrc.end())
-//    {
-//        if(iter.key()==timetips)
-//        {
-
-//            QList<QListWidgetItem *> str_lrc_list;
-//            if(pre_lrc==time_lrc){return;}
-//            str_lrc_list=ui->list_lrc->findItems(time_lrc,Qt::MatchExactly);
-//            pre_lrc=time_lrc;
-////                   int set_row=ui->list_lrc->row(str_lrc_list.at(0));
-
-//            set_row++;
-//            int row_now=map_lrc_time.value(timetips).toInt()+8;
-
-//             if(row_now<ui->list_lrc->count()-8)
-//             {
-//                 ui->list_lrc->setCurrentRow(row_now);
-//                 if (row_now>8){ui->list_lrc->verticalScrollBar()->setValue(row_now-8);}
-//             }
-
-//            ui->lrc_now->setText(time_lrc);
-
-//            ui->lrc_next->setText(map_lrc.value((iter+1).key()));
-//        }
-//            iter++;
-//    }
-
-
-
 }
-static bool paint=false;
+
 void Media::paintEvent(QPaintEvent *event)
 {
     if(!paint){return;}
@@ -597,9 +509,9 @@ void Media::paintEvent(QPaintEvent *event)
 
     painter.save();
     painter.translate(centerPoint);
-    int radius = 60;
+    int radius = 150;
     QPen pen;
-    pen.setColor(Qt::gray);
+    pen.setColor(Qt::transparent);
     pen.setWidth(1);
     painter.setPen(pen);
     painter.drawEllipse(QPoint(0, 0), radius, radius);
@@ -613,12 +525,78 @@ void Media::paintEvent(QPaintEvent *event)
     painter.setClipRegion(maskedRegion);
     painter.rotate(angle);
 
-    painter.drawPixmap(rect,QPixmap(":/img/cd2.png"));
+//    painter.drawPixmap(rect,QPixmap(":/cd_music-cd.png"));
+    painter.drawPixmap(rect,QPixmap(":/img/cd.png"));
     painter.restore();
 }
 void Media::cd()
 {
-    angle += 2;
-    if(angle == 360.0)angle = 0.0;
+    if(cd_show){
+    if(cd_pause){angle += 0;cd();}else {angle += 1;}
+    }if(angle == 360.0)angle = 0.0;
     update();
+}
+
+void Media::on_change_skin_clicked()
+{
+    QMessageBox msgBox;
+     //1.标题
+    msgBox.setWindowTitle("温馨提示：");
+    // 2.内容
+     msgBox.setText("恭喜你发现切换皮肤的功能");
+     msgBox.setInformativeText("请优先选择1024x600尺寸的图片 以实现最好效果");
+     msgBox.setStandardButtons(QMessageBox::Ok);
+//         //4.图标
+//     QPixmap pixmap(":/img/add-music.png");
+//     msgBox.setIconPixmap(pixmap);
+     //5.给按键取别名
+     msgBox.setButtonText(QMessageBox::Ok,"明白");
+     //6.设置默认按键
+     msgBox.setDefaultButton(QMessageBox::Ok);
+     msgBox.exec();
+
+    QStringList skin = QFileDialog::getOpenFileNames(this,notice_skin,path,type_skin);
+    if(skin.length()<=0){
+        return;
+    }
+
+    QPalette pal =this->palette();
+    pal.setBrush(QPalette::Background,QBrush(QPixmap(skin.at(0))));//背景图片
+
+//    pal.setBrush(QPalette::Background,QBrush(QPixmap(QCoreApplication::applicationDirPath()+"/bg2.png")));//背景图片
+
+    setPalette(pal);
+}
+
+void Media::on_cd_circle_clicked()
+{
+    if(play_state)
+    {
+        cd_show = !cd_show;
+        if(cd_show){paint=true;}
+        if(!cd_show){paint=false;}
+    }else {
+    msg_inf();return;
+}
+
+
+}
+
+void Media::msg_inf()
+{
+    QMessageBox msgBox;
+     //1.标题
+    msgBox.setWindowTitle("温馨提示：");
+    // 2.内容
+     msgBox.setText("未有文件播放中 请在左侧寻找该图标添加文件");
+     msgBox.setInformativeText("添加文件后 选中双击鼠标 开始播放文件后该按钮则正常使用。");
+     msgBox.setStandardButtons(QMessageBox::Ok);
+//         //4.图标
+     QPixmap pixmap(":/img/add-music.png");
+     msgBox.setIconPixmap(pixmap);
+     //5.给按键取别名
+     msgBox.setButtonText(QMessageBox::Ok,"好的");
+     //6.设置默认按键
+     msgBox.setDefaultButton(QMessageBox::Ok);
+     msgBox.exec();
 }

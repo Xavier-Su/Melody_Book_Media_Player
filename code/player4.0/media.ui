@@ -27,7 +27,7 @@ QPushButton,QMessageBox QPushButton
     font-weight: bold;
     color: white;
     background-color:transparent;
-    border-radius: 20px;
+    border-radius: 10px;
 
 
 }
@@ -195,7 +195,7 @@ border-radius:4px;  }</string>
   <widget class="QPushButton" name="Add">
    <property name="geometry">
     <rect>
-     <x>750</x>
+     <x>40</x>
      <y>450</y>
      <width>31</width>
      <height>31</height>
@@ -223,7 +223,7 @@ border-radius:4px;  }</string>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>720</x>
+     <x>10</x>
      <y>70</y>
      <width>281</width>
      <height>371</height>
@@ -356,7 +356,7 @@ border-radius:4px;  }</string>
   <widget class="QListWidget" name="listWidget">
    <property name="geometry">
     <rect>
-     <x>740</x>
+     <x>30</x>
      <y>110</y>
      <width>271</width>
      <height>331</height>
@@ -378,7 +378,7 @@ border-radius:4px;  }</string>
   <widget class="QPushButton" name="delete_2">
    <property name="geometry">
     <rect>
-     <x>970</x>
+     <x>260</x>
      <y>450</y>
      <width>31</width>
      <height>31</height>
@@ -406,7 +406,7 @@ border-radius:4px;  }</string>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>710</x>
+     <x>0</x>
      <y>70</y>
      <width>321</width>
      <height>41</height>
@@ -421,7 +421,7 @@ border-radius:4px;  }</string>
     </font>
    </property>
    <property name="text">
-    <string> 播放列表</string>
+    <string> 播放列表(双击条目以播放)</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
@@ -470,7 +470,7 @@ border-radius:4px;  }</string>
    <property name="geometry">
     <rect>
      <x>230</x>
-     <y>30</y>
+     <y>40</y>
      <width>561</width>
      <height>22</height>
     </rect>
@@ -633,7 +633,7 @@ border-radius:4px;  }</string>
   <widget class="QListWidget" name="list_lrc">
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>610</x>
      <y>70</y>
      <width>391</width>
      <height>361</height>
@@ -655,10 +655,10 @@ border-radius:4px;  }</string>
   <widget class="QLabel" name="logo">
    <property name="geometry">
     <rect>
-     <x>90</x>
+     <x>70</x>
      <y>10</y>
-     <width>61</width>
-     <height>51</height>
+     <width>41</width>
+     <height>41</height>
     </rect>
    </property>
    <property name="font">
@@ -685,7 +685,7 @@ border-radius:4px;  }</string>
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
-     <x>150</x>
+     <x>100</x>
      <y>20</y>
      <width>211</width>
      <height>31</height>
@@ -694,7 +694,7 @@ border-radius:4px;  }</string>
    <property name="font">
     <font>
      <family>华文隶书</family>
-     <pointsize>16</pointsize>
+     <pointsize>14</pointsize>
      <weight>50</weight>
      <bold>false</bold>
      <underline>false</underline>
@@ -706,6 +706,62 @@ border-radius:4px;  }</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="change_skin">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>20</y>
+     <width>31</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>华文楷体</family>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <italic>false</italic>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">#change_skin {
+	border-image: url(:/img/new-skin.png);
+
+}</string>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="cd_circle">
+   <property name="geometry">
+    <rect>
+     <x>730</x>
+     <y>500</y>
+     <width>41</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>华文楷体</family>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <italic>false</italic>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">#cd_circle {
+	border-image:url(:/img/cd_circle.png) ;
+
+}</string>
+   </property>
+   <property name="text">
+    <string/>
    </property>
   </widget>
   <zorder>label</zorder>
@@ -731,6 +787,8 @@ border-radius:4px;  }</string>
   <zorder>list_lrc</zorder>
   <zorder>logo</zorder>
   <zorder>label_3</zorder>
+  <zorder>change_skin</zorder>
+  <zorder>cd_circle</zorder>
  </widget>
  <resources/>
  <connections/>
