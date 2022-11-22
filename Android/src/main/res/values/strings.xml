@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">音书</string>
+    <string name="play_pause">播/暂</string>
+    <string name="play_now">正在播放：</string>
+    <string name="select">变身</string>
+    <string name="search">搜索</string>
+    <string name="find_all">扫描歌曲</string>
+    <string name="song_name">曲名</string>
+    <string name="stop">停止</string>
+    <string name="previous">上一首</string>
+    <string name="next">下一首</string>
+    <string name="quit">在线寻歌</string>
+    <string name="song_time_now">00:00</string>
+    <string name="song_time_all">00:00</string>
+    <drawable name="select_color">#E7EEF4</drawable>
+</resources>
