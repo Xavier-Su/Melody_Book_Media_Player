@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ContentValues;
@@ -25,11 +26,13 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.animation.LinearInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SeekBar;
@@ -53,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout MainLayout;
 
     private SeekBar SeekB;
+    private TextView TvSongNow;
     private TextView TvSongName;
     private Button BthSelect;
     private Button BtnPlayPause;
@@ -67,8 +71,11 @@ public class MainActivity extends AppCompatActivity {
     private Button BtnPre;
     private Button BtnNext;
     private Button BtnQuit;
+    private Button BtnLocation;
+    private ImageView ImCd;
 
     private PlayAdapter playAdapter;
+    private ObjectAnimator animator;
 
     private Permission permission;
     private MyHandler handlerBar;
@@ -83,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
 //    public PlayListMapAdapter playListMapAdapter;
     public List<String> listSongName = new ArrayList<String>();
     private List<String> pathList = new ArrayList<String>();
+    private String songNameNow="";
 //    private Map<String, String> listMap;
 
     private MyDatabaseHelper dbHelper;
@@ -119,12 +127,14 @@ public class MainActivity extends AppCompatActivity {
 
 
         RvItem = findViewById(R.id.RvItem);
+        RvItem.setItemViewCacheSize(0);
+
         BtnPlayPause = findViewById(R.id.BtnPlayPause);
         BtnStop = findViewById(R.id.BtnStop);
         BthSelect = findViewById(R.id.BtnSelect);
         BtnFindAll = findViewById(R.id.BtnFindAll);
         SeekB = findViewById(R.id.MusicSeekBar);
-        TvSongName = findViewById(R.id.TvSongName);
+        TvSongNow = findViewById(R.id.TvSongNow);
         TvSongName = findViewById(R.id.TvSongName);
         songTimeNow = findViewById(R.id.songTimeNow);
         songTimeAll = findViewById(R.id.songTimeAll);
@@ -133,6 +143,14 @@ public class MainActivity extends AppCompatActivity {
         BtnPre = findViewById(R.id.BtnPre);
         BtnNext = findViewById(R.id.BtnNext);
         BtnQuit = findViewById(R.id.BtnQuit);
+        BtnLocation = findViewById(R.id.BtnLocation);
+        ImCd = findViewById(R.id.ImCd);
+
+        animator = ObjectAnimator.ofFloat(ImCd,"rotation",0,360.0F);
+        animator.setDuration(10000);
+        animator.setInterpolator(new LinearInterpolator());
+        animator.setRepeatCount(-1);
+
 
 //        dbHelper = new MyDatabaseHelper(this, "SongList.db", null, 1);
         myDbList = new ListDatabase(this);
@@ -146,12 +164,18 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 //                SkinEnable(backDrawOrder);
-                RvItem.smoothScrollToPosition(playAdapter.getSearchPosition());
-//                SelectSkin();
+                SelectSkin();
 //                dialog.dismiss();
+
 
             }
 
+        });
+        BtnLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RvItem.smoothScrollToPosition(playAdapter.getSearchPosition());
+            }
         });
 
         BSearchSong.setOnClickListener(new View.OnClickListener() {
@@ -206,16 +230,22 @@ public class MainActivity extends AppCompatActivity {
                             e.printStackTrace();
                         }
                     }
+
                     mp.start();
                     SeekB.setMax(mp.getDuration());
 //                    BtnPlayPause.setText("暂停");
                     BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
+                    TvSongNow.setText("正在播放：");
+                    TvSongName.setText(songNameNow);
+                    animator.resume();
                     ifPlay = true;
                 } else {
                     ifPlay = false;
                     mp.pause();
 //                    BtnPlayPause.setText("播放");
                     BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.playsong));
+                    TvSongNow.setText("暂停播放：");
+                    animator.pause();
                 }
 //                    Log.i(TAG, file.getAbsolutePath());
             }
@@ -225,14 +255,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 ifPlay=false;
-
                 mp.stop();
 //                mp.reset();
                 stopIf=true;
                 BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.playsong));
-
+                TvSongNow.setText("停止播放：");
                 TvSongName.setText("暂未播放");
                 SeekB.setProgress(0);
+                animator.pause();
             }
         });
         BtnFindAll.setOnClickListener(new View.OnClickListener() {
@@ -328,6 +358,7 @@ public class MainActivity extends AppCompatActivity {
         mp.reset();
         SeekB.setProgress(0);
         try {
+            animator.start();
 
             mp.setDataSource(file.getAbsolutePath());
             mp.prepare();
@@ -338,9 +369,10 @@ public class MainActivity extends AppCompatActivity {
             SeekB.setMax(musicTimeAll);
             mp.start();
             ifPlay = true;
+            stopIf = false;
 //            BtnPlayPause.setText("暂停");
-            String songName = file.getName();
-            TvSongName.setText(songName);
+            songNameNow = file.getName();
+            TvSongName.setText(songNameNow);
             songTimeAll.setText(showTimeAll);
             BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
 
@@ -391,7 +423,6 @@ public class MainActivity extends AppCompatActivity {
 
     public void databaseRead() {
 
-        RvItem.setItemViewCacheSize(0);
         RvItem.setLayoutManager(new LinearLayoutManager(MainActivity.this));
         pathList = myDbList.getPathList();
         listSongName = myDbList.getNameList();
@@ -410,7 +441,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLongClick(int pos) {
                 String wantDeleteName = myDbList.getNameList().get(pos);
-                MyDelectAlertDialog(wantDeleteName);
+                String wantDeletePath = myDbList.getPathList().get(pos);
+                MyDelectAlertDialog(wantDeleteName,wantDeletePath);
             }
         });
 //        playAdapter=new PlayAdapter(MainActivity.this,pathList,new Play)
@@ -520,7 +552,12 @@ public class MainActivity extends AppCompatActivity {
             if (!ifSeek) {
                 int musicTimeNow = mp.getCurrentPosition();
                 String showTimeNow = musicTimeNow / 1000 / 60 + ":" + musicTimeNow / 1000 % 60;
-                SeekB.setProgress(musicTimeNow);
+                if (stopIf){
+                    SeekB.setProgress(0);
+                }else {
+                    SeekB.setProgress(musicTimeNow);
+                }
+
                 songTimeNow.setText(showTimeNow);
                 if (!mp.isPlaying() && ifPlay) {
                     Toast.makeText(MainActivity.this, "下一曲", Toast.LENGTH_SHORT).show();
@@ -623,11 +660,11 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
 
     }
-    public void MyDelectAlertDialog(String wantDeleteName) {
+    public void MyDelectAlertDialog(String wantDeleteName, String wantDeletePath) {
         dialog = new AlertDialog.Builder(this)
 //                .setIcon(R.mipmap.icon)//设置标题的图片
                 .setTitle("移除歌曲 "+wantDeleteName)//设置对话框的标题
-                .setMessage("是否从列表中移除该歌曲\n（并不会删除本地歌曲）\n（重新扫描歌曲即可恢复）")//设置对话框的内容
+                .setMessage("是否从列表中移除该歌曲\n（并不会删除本地歌曲）\n（重新扫描歌曲即可恢复）\n歌曲路径："+wantDeletePath)//设置对话框的内容
                 //设置对话框的按钮
                 .setNegativeButton("手滑误触", new DialogInterface.OnClickListener() {
                     @Override
