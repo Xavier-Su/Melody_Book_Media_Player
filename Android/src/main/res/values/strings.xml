@@ -12,5 +12,7 @@
     <string name="quit">在线寻歌</string>
     <string name="song_time_now">00:00</string>
     <string name="song_time_all">00:00</string>
+    <string name="channel_name">channel_name</string>
+    <string name="channel_description">channel_description</string>
     <drawable name="select_color">#E7EEF4</drawable>
 </resources>

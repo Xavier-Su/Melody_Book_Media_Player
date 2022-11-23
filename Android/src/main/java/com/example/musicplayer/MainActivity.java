@@ -2,21 +2,34 @@ package com.example.musicplayer;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -35,9 +48,12 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RemoteViews;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.example.musicplayer.receiver.MyReceiver;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,6 +70,8 @@ public class MainActivity extends AppCompatActivity {
     private MediaPlayer mp;
 
     private LinearLayout MainLayout;
+//    private MyReceiver myReceiver;
+    private MyReceiverIn myReceiverIn;
 
     private SeekBar SeekB;
     private TextView TvSongNow;
@@ -85,6 +103,13 @@ public class MainActivity extends AppCompatActivity {
     public File file;
     //    private String[] songList = {file.getName(),file.getName(),file.getName(),file.getName()};
     final int TIMER_MSG = 0X001;
+    final String CHANNEL_ID="CHANNEL_ID";
+    public static final String PLAY_PAUSE_SONG="play_pause_song";
+//    static final String PAUSE_SONG="pause_song";
+    public static final String NEXT_SONG="next_song";
+    public static final String PRE_SONG="pre_song";
+
+
     private int backDrawOrder = 0;
 
 //    public PlayListMapAdapter playListMapAdapter;
@@ -106,6 +131,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.Theme_MusicPlayer);
         super.onCreate(savedInstanceState);
+        sendNotificationMsg();
+
+        createNotificationChannel();
 
         StatusBar statusBar = new StatusBar(MainActivity.this);
         //设置颜色为半透明
@@ -175,6 +203,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 RvItem.smoothScrollToPosition(playAdapter.getSearchPosition());
+
+//                toSendBroadcast();
             }
         });
 
@@ -220,33 +250,34 @@ public class MainActivity extends AppCompatActivity {
         BtnPlayPause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!mp.isPlaying()) {
-
-                    if (stopIf){
-                        try {
-                            mp.prepare();
-                            stopIf=false;
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    mp.start();
-                    SeekB.setMax(mp.getDuration());
-//                    BtnPlayPause.setText("暂停");
-                    BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
-                    TvSongNow.setText("正在播放：");
-                    TvSongName.setText(songNameNow);
-                    animator.resume();
-                    ifPlay = true;
-                } else {
-                    ifPlay = false;
-                    mp.pause();
-//                    BtnPlayPause.setText("播放");
-                    BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.playsong));
-                    TvSongNow.setText("暂停播放：");
-                    animator.pause();
-                }
+                playOrPause();
+//                if (!mp.isPlaying()) {
+//
+//                    if (stopIf){
+//                        try {
+//                            mp.prepare();
+//                            stopIf=false;
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//
+//                    mp.start();
+//                    SeekB.setMax(mp.getDuration());
+////                    BtnPlayPause.setText("暂停");
+//                    BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
+//                    TvSongNow.setText("正在播放：");
+//                    TvSongName.setText(songNameNow);
+//                    animator.resume();
+//                    ifPlay = true;
+//                } else {
+//                    ifPlay = false;
+//                    mp.pause();
+////                    BtnPlayPause.setText("播放");
+//                    BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.playsong));
+//                    TvSongNow.setText("暂停播放：");
+//                    animator.pause();
+//                }
 //                    Log.i(TAG, file.getAbsolutePath());
             }
         });
@@ -375,9 +406,40 @@ public class MainActivity extends AppCompatActivity {
             TvSongName.setText(songNameNow);
             songTimeAll.setText(showTimeAll);
             BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
+            sendNotificationChange(songNameNow);
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+    }
+    private void playOrPause() {
+        if (!mp.isPlaying()) {
+
+            if (stopIf){
+                try {
+                    mp.prepare();
+                    stopIf=false;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            mp.start();
+            SeekB.setMax(mp.getDuration());
+//                    BtnPlayPause.setText("暂停");
+            BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
+            TvSongNow.setText("正在播放：");
+            TvSongName.setText(songNameNow);
+            animator.resume();
+            ifPlay = true;
+        } else {
+            ifPlay = false;
+            mp.pause();
+//                    BtnPlayPause.setText("播放");
+            BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.playsong));
+            TvSongNow.setText("暂停播放：");
+            animator.pause();
         }
 
     }
@@ -496,28 +558,6 @@ public class MainActivity extends AppCompatActivity {
                     TvSongName.setText("扫描完成");
 //                dialog.dismiss();
                     Toast.makeText(MainActivity.this, "扫描本地音乐完成", Toast.LENGTH_SHORT).show();
-//
-////                    adapter = new MyAdapter<String>(MainActivity.this, listSong);
-//
-//                    RvItem.setLayoutManager(new LinearLayoutManager(MainActivity.this));
-////                    pathList = playListMapAdapter.getPathList();
-//                    pathList = myDbList.getPathList();
-//                    listSongName = myDbList.getNameList();
-//                    playAdapter = new PlayAdapter(MainActivity.this, pathList,listSongName,
-//                            new PlayAdapter.OnItemClickListener() {
-//                        @SuppressLint("NotifyDataSetChanged")
-//                        @Override
-//                        public void onClick(int pos) {
-//
-//                        }
-//                        @Override
-//                        public void onLongClick(int pos) {
-//
-//                        }
-//                    });
-//
-//                    playAdapter.appendList(listSongName);
-//                    RvItem.setAdapter(playAdapter);
 
                     databaseRead();
 
@@ -795,6 +835,238 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.channel_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    private void sendNotificationMsg() {
+
+
+
+        Intent intentPre = new Intent(PRE_SONG);
+        Intent intentNext = new Intent(NEXT_SONG);
+        Intent intentPlayPause = new Intent(PLAY_PAUSE_SONG);
+
+        PendingIntent prePendingIntent = PendingIntent.getBroadcast(this, 0, intentPre, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent nextPendingIntent = PendingIntent.getBroadcast(this, 0, intentNext, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent playPausePendingIntent = PendingIntent.getBroadcast(this, 0, intentPlayPause, PendingIntent.FLAG_IMMUTABLE);
+
+
+        // Get the layouts to use in the custom notification
+        RemoteViews notificationLayout = new RemoteViews(getPackageName(), R.layout.remoteview_play);
+
+
+        notificationLayout.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
+        notificationLayout.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
+        notificationLayout.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
+
+        RemoteViews notificationLayoutExpanded = new RemoteViews(getPackageName(), R.layout.remoteview);
+
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
+
+
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        // Apply the layouts to the notification
+        Notification customNotification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(notificationLayout)
+                .setCustomBigContentView(notificationLayoutExpanded)
+                .setOngoing(true)
+                .build();
+
+
+
+        manager.notify(1, customNotification);
+
+    }
+    private void sendNotificationChange(String nSongName) {
+
+        Intent intentPre = new Intent(PRE_SONG);
+        Intent intentNext = new Intent(NEXT_SONG);
+        Intent intentPlayPause = new Intent(PLAY_PAUSE_SONG);
+
+        PendingIntent prePendingIntent = PendingIntent.getBroadcast(this, 0, intentPre, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent nextPendingIntent = PendingIntent.getBroadcast(this, 0, intentNext, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent playPausePendingIntent = PendingIntent.getBroadcast(this, 0, intentPlayPause, PendingIntent.FLAG_IMMUTABLE);
+
+
+        // Get the layouts to use in the custom notification
+        RemoteViews notificationLayout = new RemoteViews(getPackageName(), R.layout.remoteview_play);
+//        notificationLayout.setTextViewText(R.id.NTvSongNow, nSongName);
+
+
+
+
+
+        notificationLayout.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
+        notificationLayout.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
+        notificationLayout.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
+
+        RemoteViews notificationLayoutExpanded = new RemoteViews(getPackageName(), R.layout.remoteview);
+//        notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, nSongName);
+
+
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
+
+        if (mp.isPlaying()) {
+            notificationLayout.setTextViewText(R.id.NTvSongNow, "播放："+nSongName);
+            notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, "播放："+nSongName);
+            notificationLayout.setImageViewResource(R.id.NImage, R.drawable.pause);
+
+        } else {
+            notificationLayout.setTextViewText(R.id.NTvSongNow, "暂停："+nSongName);
+            notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, "暂停："+nSongName);
+            notificationLayout.setImageViewResource(R.id.NImage, R.drawable.playsong);
+
+        }
+
+//        if (mp.isPlaying()) {
+//            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
+//            notificationLayoutExpanded.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
+//        } else {
+//            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.playsong);
+//            notificationLayoutExpanded.setImageViewResource(R.id.NBtnPlayPause, R.drawable.playsong);
+//        }
+
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        // Apply the layouts to the notification
+        Notification customNotification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(notificationLayout)
+                .setCustomBigContentView(notificationLayoutExpanded)
+                .setOngoing(true)
+                .build();
+        manager.notify(1, customNotification);
+
+    }
+
+
+    private void sendRecommendMsg() {
+
+//        Intent intent = new Intent(MainActivity.this, MainActivity.class);
+//        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//        PendingIntent pendingIntent = PendingIntent.getActivity(MainActivity.this, 0, intent, 0);
+        RemoteViews remoteViews = getRemoteViews();
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+//        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+        Notification builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("textTitle")
+//                .setContentText("textContent")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+//                .setContentIntent(pendingIntent)
+                .setAutoCancel(false)
+//                .setContent(remoteViews)
+                .setCustomContentView(remoteViews)
+                .build();
+
+        manager.notify(1, builder);
+
+//        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+//
+//        // notificationId is a unique int for each notification that you must define
+//        int notificationId=1;
+//        notificationManager.notify(notificationId, builder.build());
+
+    }
+
+    private void toSendBroadcast(){
+        Intent intent = new Intent("ysPlay");
+        sendBroadcast(intent);
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+//        myReceiver=new MyReceiver();
+//        myReceiver=new MyReceiverIn();
+        myReceiverIn=new MyReceiverIn();
+//        IntentFilter filter=new IntentFilter("ysPlay");
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(PLAY_PAUSE_SONG);
+        intentFilter.addAction(PRE_SONG);
+        intentFilter.addAction(NEXT_SONG);
+        registerReceiver(myReceiverIn,intentFilter);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+//        unregisterReceiver(myReceiver);
+        unregisterReceiver(myReceiverIn);
+    }
+
+    //    @NotNull
+    private RemoteViews getRemoteViews() {
+//        Intent intent = new Intent(this, MainActivity.class);
+        Intent intentPrev = new Intent("ysPlay");
+//        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent prevPendingIntent = PendingIntent.getBroadcast(this, 0, intentPrev, 0);
+
+        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.remoteview);//RemoteView传入布局
+        remoteViews.setTextViewText(R.id.NTvSongNow, "播放歌曲");//设置textView内容
+//        remoteViews.setTextViewText(R.id.tv_right, "跳转");//设置textView内容
+//        remoteViews.setImageViewResource(R.id.icon, R.drawable.ic_launcher);//设置图片样式
+//        remoteViews.setOnClickPendingIntent(R.id.NBtnNext, pendingIntent);//点击跳转事件
+//
+
+        //为prev控件注册事件
+        remoteViews.setOnClickPendingIntent(R.id.NBtnPre, prevPendingIntent);
+        remoteViews.setOnClickPendingIntent(R.id.NBtnPlayPause, prevPendingIntent);
+        remoteViews.setOnClickPendingIntent(R.id.NBtnNext, prevPendingIntent);
+
+
+        return remoteViews;
+    }
+
+    public class MyReceiverIn extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()){
+                case PLAY_PAUSE_SONG:
+                    Log.e("ysPlay123",PLAY_PAUSE_SONG);
+                    playOrPause();
+                    break;
+                case PRE_SONG:
+                    Log.e("ysPlay123",PRE_SONG);
+                    PreSong();
+                    break;
+                case NEXT_SONG:
+                    Log.e("ysPlay123",NEXT_SONG);
+                    NextSong();
+                    break;
+            }
+
+        }
+    }
+
+
+
+
 
 
 

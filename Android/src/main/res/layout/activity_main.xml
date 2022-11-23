@@ -244,43 +244,30 @@
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:layout_margin="2dp"
-
-
             android:textSize="15sp"
-
             android:layout_weight="0"
-
             android:textColor="#696969" />
 
         <Button
             android:id="@+id/BtnPlayPause"
             android:layout_width="45dp"
             android:background="@drawable/playsong"
-
             android:layout_height="45dp"
             android:layout_gravity="top"
             android:layout_margin="2dp"
-
             android:layout_weight="0"
-
             android:textColor="#696969"
-
-
             android:textSize="15sp" />
 
         <Button
             android:id="@+id/BtnNext"
             android:layout_gravity="top"
             android:background="@drawable/next"
-
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:layout_margin="2dp"
-
             android:textSize="15sp"
-
             android:layout_weight="0"
-
 
             android:textColor="#696969"
             />
