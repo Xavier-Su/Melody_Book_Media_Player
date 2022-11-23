@@ -31,10 +31,14 @@ public class ListDatabase {
     public void Delete(String wantDeleteSong ){
         String rawQuerySql = "delete from songlist where songName=?";
         System.out.println("wantDeleteSong="+wantDeleteSong);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+//        SQLiteDatabase db = dbHelper.getWritableDatabase();
         db.execSQL(rawQuerySql,new Object[]{wantDeleteSong});
         System.out.println("wantDeleteSong OK");
 
+    }
+    public void DeleteTable(){
+        String deleteTableSql = "delete from songlist";
+        db.execSQL(deleteTableSql);
     }
 
     public List<String> getNameList(){

@@ -80,10 +80,10 @@ public class MainActivity extends AppCompatActivity {
     final int TIMER_MSG = 0X001;
     private int backDrawOrder = 0;
 
-    public PlayListMapAdapter playListMapAdapter;
+//    public PlayListMapAdapter playListMapAdapter;
     public List<String> listSongName = new ArrayList<String>();
     private List<String> pathList = new ArrayList<String>();
-    private Map<String, String> listMap;
+//    private Map<String, String> listMap;
 
     private MyDatabaseHelper dbHelper;
     private AlertDialog dialog;
@@ -134,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
         BtnNext = findViewById(R.id.BtnNext);
         BtnQuit = findViewById(R.id.BtnQuit);
 
-        dbHelper = new MyDatabaseHelper(this, "SongList.db", null, 1);
+//        dbHelper = new MyDatabaseHelper(this, "SongList.db", null, 1);
         myDbList = new ListDatabase(this);
 
 
@@ -146,7 +146,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 //                SkinEnable(backDrawOrder);
-                SelectSkin();
+                RvItem.smoothScrollToPosition(playAdapter.getSearchPosition());
+//                SelectSkin();
 //                dialog.dismiss();
 
             }
@@ -358,11 +359,10 @@ public class MainActivity extends AppCompatActivity {
         System.out.println("nowCur = " + nowCur);
 //                Drawable drawable=getResources().getDrawable(R.drawable.select_color);
 
-        if (nowCur < countSong) {
+        if (nowCur < countSong-1) {
             nowCur++;
             playAdapter.setSearchPosition(nowCur);
-        }
-        if (nowCur == countSong) {
+        } else if (nowCur == countSong-1) {
             nowCur = 0;
             playAdapter.setSearchPosition(nowCur);
         }
@@ -390,27 +390,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void databaseRead() {
-//        List<String> dataBaseList = new ArrayList<>();
-//        SQLiteDatabase db = dbHelper.getWritableDatabase();
-//        String sql = "select count(*) from songlist";
-//        Cursor cursor = db.rawQuery(sql, null);
-//        cursor.moveToFirst();
-//        long count = cursor.getLong(0);
-//        cursor.close();
-//
-//        String rawQuerySql = null;
-//        for (int i = 0; i < count; i++) {
-//            rawQuerySql = "select * from songlist where id = " + i;
-//            cursor = db.rawQuery(rawQuerySql, null);
-//            while (cursor.moveToNext()) {
-//                @SuppressLint("Range") String songName = cursor.getString(cursor.getColumnIndex("songName"));
-////                        System.out.println("songName==="+songName);
-//                dataBaseList.add(songName);
-//            }
-//            cursor.close();
-//        }
-//                db.close();
 
+        RvItem.setItemViewCacheSize(0);
         RvItem.setLayoutManager(new LinearLayoutManager(MainActivity.this));
         pathList = myDbList.getPathList();
         listSongName = myDbList.getNameList();
@@ -429,16 +410,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLongClick(int pos) {
                 String wantDeleteName = myDbList.getNameList().get(pos);
-
                 MyDelectAlertDialog(wantDeleteName);
-//                myDbList.Delete(wantDeleteName);
-//                Toast.makeText(MainActivity.this, "检测到移除歌曲 "+wantDeleteName, Toast.LENGTH_SHORT).show();
-//                databaseRead();
-//                RvItem.removeItemDecorationAt(searchPosition);
             }
         });
 //        playAdapter=new PlayAdapter(MainActivity.this,pathList,new Play)
-        listSongName = myDbList.getNameList();
 //        playAdapter.setDbHelper(dbHelper);
         playAdapter.appendList(listSongName);
 //        playAdapter.setMap(listMap);
@@ -487,41 +462,33 @@ public class MainActivity extends AppCompatActivity {
                     dialog.dismiss();
                     BtnFindAll.setText("扫描歌曲");
                     TvSongName.setText("扫描完成");
-
 //                dialog.dismiss();
                     Toast.makeText(MainActivity.this, "扫描本地音乐完成", Toast.LENGTH_SHORT).show();
-
-                    adapter = new MyAdapter<String>(MainActivity.this, listSong);
-
-                    RvItem.setLayoutManager(new LinearLayoutManager(MainActivity.this));
-                    pathList = playListMapAdapter.getPathList();
-                    playAdapter = new PlayAdapter(MainActivity.this, pathList,
-                            new PlayAdapter.OnItemClickListener() {
-                        @SuppressLint("NotifyDataSetChanged")
-                        @Override
-                        public void onClick(int pos) {
-//                        Toast.makeText(MainActivity.this, "click = "+pos,Toast.LENGTH_SHORT).show();
-                            String name = pathList.get(pos);
-                            System.out.println("name = " + name);
-                            positionCur = pos;
-                            file = new File(name);
-                            playAdapter.setmPosition(pos);
-                            playAdapter.notifyDataSetChanged();
-                            play();
-                        }
-                                @Override
-                                public void onLongClick(int pos) {
-
-                                }
-                    });
-
-                    listSongName = playListMapAdapter.getNameList();
-                    playAdapter.setDbHelper(dbHelper);
-
-                    playAdapter.appendList(listSongName);
-                    playAdapter.setMap(listMap);
-                    databaseRead();
+//
+////                    adapter = new MyAdapter<String>(MainActivity.this, listSong);
+//
+//                    RvItem.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+////                    pathList = playListMapAdapter.getPathList();
+//                    pathList = myDbList.getPathList();
+//                    listSongName = myDbList.getNameList();
+//                    playAdapter = new PlayAdapter(MainActivity.this, pathList,listSongName,
+//                            new PlayAdapter.OnItemClickListener() {
+//                        @SuppressLint("NotifyDataSetChanged")
+//                        @Override
+//                        public void onClick(int pos) {
+//
+//                        }
+//                        @Override
+//                        public void onLongClick(int pos) {
+//
+//                        }
+//                    });
+//
+//                    playAdapter.appendList(listSongName);
 //                    RvItem.setAdapter(playAdapter);
+
+                    databaseRead();
+
                     searchIf=false;
                     break;
             }
@@ -595,30 +562,25 @@ public class MainActivity extends AppCompatActivity {
     public MyAdapter<String> adapter;
 
     public void displaySongs() {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+//        SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();//临时变量
-
-
         final ArrayList<File> songs = findSong(Environment.getExternalStorageDirectory());
         String[] items = new String[songs.size()];
-        List<String> itemMy = new ArrayList<String>();
-        List<String> list = new ArrayList<String>();
 
         String patternName = "[^\\/\\\\]+$";
         // 创建 Pattern 对象
         Pattern r = Pattern.compile(patternName);
         // 现在创建 matcher 对象
 
-        String deleteTableSql = "delete from songlist";
-        db.execSQL(deleteTableSql);
+//        String deleteTableSql = "delete from songlist";
+//        db.execSQL(deleteTableSql);
+
+        myDbList.DeleteTable();
         for (int i = 0; i < songs.size(); i++) {
             items[i] = songs.get(i).toString();
-            itemMy.add(items[i]);
-            list.add(items[i]);
-            listSong.add(items[i]);
+//            listSong.add(items[i]);
             values.put("id", i);
             values.put("songPath", items[i]);
-
             Matcher m = r.matcher(items[i]);
             if (m.find()) {
                 String name = m.group(0);
@@ -628,15 +590,13 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 System.out.println("NO MATCH");
             }
-            db.insert("songlist", null, values);
+//            db.insert("songlist", null, values);
             myDbList.insertListSingle(values);
-//            itemMy.add(i,items[i]);
         }
-//        System.out.println("itemmy = "+itemMy);
-        playListMapAdapter = new PlayListMapAdapter(listSong);
-        listMap = playListMapAdapter.listToMap();
-        System.out.println("myitemmy = " + itemMy);
-//        adapter = new MyAdapter<String>(this, list);
+//        playListMapAdapter = new PlayListMapAdapter(listSong);
+
+
+
 
     }
 
