@@ -187,7 +187,7 @@ public class PlayAdapter extends RecyclerView.Adapter <RecyclerView.ViewHolder> 
             @Override
             protected FilterResults performFiltering(CharSequence charSequence) {
                 String charString = charSequence.toString();
-                System.out.println("str= "+mSourceList);
+//                System.out.println("str= "+mSourceList);
                 if (charString.isEmpty()) {
                     mObjects = mSourceList;
 
