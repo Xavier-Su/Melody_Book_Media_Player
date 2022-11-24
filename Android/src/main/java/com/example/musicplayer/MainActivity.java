@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -33,6 +34,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -60,6 +62,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Delayed;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -67,7 +70,9 @@ import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
     public static int deleteUpdateList= 0;
-    private MediaPlayer mp;
+//    private MediaPlayer mp;
+//    private mpControl myService;
+    public ListDatabase myDbList;
 
     private LinearLayout MainLayout;
 //    private MyReceiver myReceiver;
@@ -90,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
     private Button BtnNext;
     private Button BtnQuit;
     private Button BtnLocation;
+    private Button BtnOrder;
     private ImageView ImCd;
 
     private PlayAdapter playAdapter;
@@ -98,16 +104,39 @@ public class MainActivity extends AppCompatActivity {
     private Permission permission;
     private MyHandler handlerBar;
     private Boolean ifSeek = false;
+    private Boolean ifCycle = false;
+    private int ifCycleCount = 0;
     public int positionCur;
 
     public File file;
     //    private String[] songList = {file.getName(),file.getName(),file.getName(),file.getName()};
     final int TIMER_MSG = 0X001;
+    public int musicTimeAll;
+    public int musicTimeNow;
+    public String showTimeAll;
+    public String showTimeNow;
+
+
     final String CHANNEL_ID="CHANNEL_ID";
     public static final String PLAY_PAUSE_SONG="play_pause_song";
 //    static final String PAUSE_SONG="pause_song";
     public static final String NEXT_SONG="next_song";
     public static final String PRE_SONG="pre_song";
+    public static final String DB_READ="db_read";
+
+    private MyService.MpControl mpControl;
+
+    private ServiceConnection connection=new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            mpControl = (MyService.MpControl) iBinder;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+
+        }
+    };
 
 
     private int backDrawOrder = 0;
@@ -123,18 +152,22 @@ public class MainActivity extends AppCompatActivity {
     private int boring=0;
     private boolean searchIf=false;
 
-    private ListDatabase myDbList;
+//    private ListDatabase myDbList;
 
-    private boolean stopIf=false;
+    public boolean stopIf=false;
+    public boolean dBStart=false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.Theme_MusicPlayer);
         super.onCreate(savedInstanceState);
-        sendNotificationMsg();
+        permission = new Permission();
+        permission.checkerPermission(this);
 
+        myDbList = new ListDatabase(this);
+//        sendNotificationMsg();
         createNotificationChannel();
-
+//        startService(new Intent(this,MyService.class));
         StatusBar statusBar = new StatusBar(MainActivity.this);
         //设置颜色为半透明
         statusBar.setColor(R.color.translucent);
@@ -142,14 +175,23 @@ public class MainActivity extends AppCompatActivity {
 //        statusBar.setColor(R.color.transparent);
         //隐藏状态栏
 //        statusBar.hide();
-
         setContentView(R.layout.activity_main);
-        mp = new MediaPlayer();
+
+        Intent intent=new Intent(this,MyService.class);
+        bindService(intent,connection,BIND_AUTO_CREATE);
+
+
+
+//        myService = new mpControl();
+
+//        mp = new MediaPlayer();
+//        mp = mpControl.createMediaPlayer();
+//        mp = mpControl.mp;
         handlerBar = new MyHandler();
+//        if (mp==null){System.out.println("service null");}
 
 
-        permission = new Permission();
-        permission.checkerPermission(this);
+
 
         MainLayout = (LinearLayout) findViewById(R.id.layout);
 
@@ -172,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
         BtnNext = findViewById(R.id.BtnNext);
         BtnQuit = findViewById(R.id.BtnQuit);
         BtnLocation = findViewById(R.id.BtnLocation);
+        BtnOrder = findViewById(R.id.BtnOrder);
         ImCd = findViewById(R.id.ImCd);
 
         animator = ObjectAnimator.ofFloat(ImCd,"rotation",0,360.0F);
@@ -179,14 +222,22 @@ public class MainActivity extends AppCompatActivity {
         animator.setInterpolator(new LinearInterpolator());
         animator.setRepeatCount(-1);
 
-
-//        dbHelper = new MyDatabaseHelper(this, "SongList.db", null, 1);
-        myDbList = new ListDatabase(this);
-
-
-        handlerBar.sendEmptyMessage(TIMER_MSG);
         databaseRead();
+//        dbHelper = new MyDatabaseHelper(this, "SongList.db", null, 1);
+//        myDbList = new ListDatabase(this);
 
+
+//        handlerBar.sendEmptyMessage(TIMER_MSG);
+//        while (dBStart){
+//            databaseRead();
+//            Log.d("databaseRead", "dBStart_true: ");
+//            dBStart=false;
+//        }
+////
+//        Log.d("123456", "databaseRead: ");
+
+        int randomnum = (int) (Math.random() * 14);
+        SkinEnable(randomnum);
 
         BthSelect.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -199,11 +250,30 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
+        BtnOrder.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                ifCycle=!ifCycle;
+                if (ifCycle){
+
+                    Toast.makeText(MainActivity.this, "单曲循环模式", Toast.LENGTH_SHORT).show();
+                    BtnOrder.setBackgroundDrawable(getResources().getDrawable(R.drawable.cycle));
+
+                }else {
+                    Toast.makeText(MainActivity.this, "列表循环模式", Toast.LENGTH_SHORT).show();
+                    BtnOrder.setBackgroundDrawable(getResources().getDrawable(R.drawable.order));
+                }
+
+
+            }
+        });
         BtnLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                RvItem.smoothScrollToPosition(playAdapter.getSearchPosition());
 
+
+                RvItem.smoothScrollToPosition(playAdapter.getSearchPosition());
 //                toSendBroadcast();
             }
         });
@@ -286,7 +356,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 ifPlay=false;
-                mp.stop();
+//                mp.stop();
+                mpControl.songStop();
 //                mp.reset();
                 stopIf=true;
                 BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.playsong));
@@ -325,7 +396,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 Toast.makeText(MainActivity.this, "开始跳动", Toast.LENGTH_SHORT).show();
-                mp.pause();
+//                mp.pause();
+                mpControl.songPause();
 
                 ifSeek = true;
 
@@ -335,8 +407,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 Toast.makeText(MainActivity.this, "结束跳动", Toast.LENGTH_SHORT).show();
-                mp.start();
-                mp.seekTo(PositionJump);
+//                mp.start();
+//                mp.seekTo(PositionJump);
+
+                mpControl.songStart();
+                mpControl.songPositionJump(PositionJump);
+
+
                 ifSeek = false;
 
             }
@@ -383,63 +460,87 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private boolean ifPlay = false;
+    static public boolean ifPlay = false;
 
     private void play() {
-        mp.reset();
+//        mp.reset();
+        mpControl.songRest();
+
         SeekB.setProgress(0);
-        try {
-            animator.start();
+        animator.start();
 
-            mp.setDataSource(file.getAbsolutePath());
-            mp.prepare();
 
-            int musicTimeAll = mp.getDuration();
-            String showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
+//            mp.setDataSource(file.getAbsolutePath());
+//            mp.prepare();
 
-            SeekB.setMax(musicTimeAll);
-            mp.start();
-            ifPlay = true;
-            stopIf = false;
+//            mpControl.songPlay(file);
+        mpControl.songPlay(file.getAbsolutePath());
+
+
+
+//            int musicTimeAll = mp.getDuration();
+        musicTimeAll = mpControl.songGetTimeAll();
+
+        showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
+
+        SeekB.setMax(musicTimeAll);
+        handlerBar.sendEmptyMessage(TIMER_MSG);
+//            mp.start();
+        mpControl.songStart();
+
+        ifPlay = true;
+        stopIf = false;
 //            BtnPlayPause.setText("暂停");
-            songNameNow = file.getName();
-            TvSongName.setText(songNameNow);
-            songTimeAll.setText(showTimeAll);
-            BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
-            sendNotificationChange(songNameNow);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        songNameNow = file.getName();
+        TvSongName.setText(songNameNow);
+        songTimeAll.setText(showTimeAll);
+        BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
+        mpControl.setPositionSongName(songNameNow);
+        sendNotificationChangePlay(songNameNow);
 
     }
     private void playOrPause() {
-        if (!mp.isPlaying()) {
+//        if (!mp.isPlaying()) {
+            if (!mpControl.songIsPlaying()) {
 
             if (stopIf){
-                try {
-                    mp.prepare();
-                    stopIf=false;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+//                try {
+//                    mp.prepare();
+////                    myService.songPrepare();
+//                    stopIf=false;
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+                mpControl.songPrepare();
+                stopIf=false;
             }
 
-            mp.start();
-            SeekB.setMax(mp.getDuration());
+
+//            mp.start();
+                mpControl.songStart();
+
+
+
+//            SeekB.setMax(mp.getDuration());
+            SeekB.setMax(mpControl.songGetTimeAll());
 //                    BtnPlayPause.setText("暂停");
             BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.pause));
             TvSongNow.setText("正在播放：");
             TvSongName.setText(songNameNow);
+            mpControl.setPositionSongName(songNameNow);
             animator.resume();
             ifPlay = true;
         } else {
             ifPlay = false;
-            mp.pause();
+//            mp.pause();
+                mpControl.songPause();
 //                    BtnPlayPause.setText("播放");
             BtnPlayPause.setBackgroundDrawable(getResources().getDrawable(R.drawable.playsong));
             TvSongNow.setText("暂停播放：");
             animator.pause();
+            mpControl.setPositionSongName(songNameNow);
+            sendNotificationChangePause(songNameNow);
+
         }
 
     }
@@ -485,9 +586,13 @@ public class MainActivity extends AppCompatActivity {
 
     public void databaseRead() {
 
+
         RvItem.setLayoutManager(new LinearLayoutManager(MainActivity.this));
         pathList = myDbList.getPathList();
+//        pathList = mpControl.dBGetPathList();
         listSongName = myDbList.getNameList();
+//        listSongName = mpControl.dBGetNameList();
+
         playAdapter = new PlayAdapter(MainActivity.this, pathList,listSongName, new PlayAdapter.OnItemClickListener() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -497,20 +602,23 @@ public class MainActivity extends AppCompatActivity {
                 positionCur = pos;
                 file = new File(song_path);
                 playAdapter.setmPosition(pos);
+
+                mpControl.setPositionSongNow(pos);
+                mpControl.setPositionSongCount(playAdapter.getItemCount());
+
                 playAdapter.notifyDataSetChanged();
                 play();
             }
             @Override
             public void onLongClick(int pos) {
                 String wantDeleteName = myDbList.getNameList().get(pos);
+//                String wantDeleteName = mpControl.dBGetName(pos);
                 String wantDeletePath = myDbList.getPathList().get(pos);
+//                String wantDeletePath = mpControl.dBGetPath(pos);
                 MyDelectAlertDialog(wantDeleteName,wantDeletePath);
             }
         });
-//        playAdapter=new PlayAdapter(MainActivity.this,pathList,new Play)
-//        playAdapter.setDbHelper(dbHelper);
         playAdapter.appendList(listSongName);
-//        playAdapter.setMap(listMap);
         RvItem.setAdapter(playAdapter);
 
     }
@@ -590,8 +698,10 @@ public class MainActivity extends AppCompatActivity {
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
             if (!ifSeek) {
-                int musicTimeNow = mp.getCurrentPosition();
-                String showTimeNow = musicTimeNow / 1000 / 60 + ":" + musicTimeNow / 1000 % 60;
+//                int musicTimeNow = mp.getCurrentPosition();
+//                int musicTimeNow = mp.getCurrentPosition();
+                musicTimeNow = mpControl.songGetTimeCur();
+                showTimeNow = musicTimeNow / 1000 / 60 + ":" + musicTimeNow / 1000 % 60;
                 if (stopIf){
                     SeekB.setProgress(0);
                 }else {
@@ -599,10 +709,20 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 songTimeNow.setText(showTimeNow);
-                if (!mp.isPlaying() && ifPlay) {
-                    Toast.makeText(MainActivity.this, "下一曲", Toast.LENGTH_SHORT).show();
-                    NextSong();
-                }
+//                if (!mp.isPlaying() && ifPlay) {
+
+                    if (Objects.equals(showTimeNow, showTimeAll)) {
+                        if (!ifCycle){
+                        Toast.makeText(MainActivity.this, "下一曲", Toast.LENGTH_SHORT).show();
+                        NextSong();
+                        }else {
+                            Toast.makeText(MainActivity.this, "单曲循环", Toast.LENGTH_SHORT).show();
+                            playAdapter.setSearchPosition(playAdapter.getSearchPosition());
+                        }
+                    }
+
+
+
             }
 
             handlerBar.sendEmptyMessageDelayed(TIMER_MSG, 1000);
@@ -653,6 +773,7 @@ public class MainActivity extends AppCompatActivity {
 //        db.execSQL(deleteTableSql);
 
         myDbList.DeleteTable();
+//        mpControl.dBDeleteTable();
         for (int i = 0; i < songs.size(); i++) {
             items[i] = songs.get(i).toString();
 //            listSong.add(items[i]);
@@ -669,6 +790,7 @@ public class MainActivity extends AppCompatActivity {
             }
 //            db.insert("songlist", null, values);
             myDbList.insertListSingle(values);
+//            mpControl.dBInsertListSingle(values);
         }
 //        playListMapAdapter = new PlayListMapAdapter(listSong);
 
@@ -717,6 +839,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         myDbList.Delete(wantDeleteName);
+//                        mpControl.dBDelete(wantDeleteName);
                         Toast.makeText(MainActivity.this, "检测到移除歌曲 "+wantDeleteName, Toast.LENGTH_SHORT).show();
                         databaseRead();
                         dialog.dismiss();
@@ -896,7 +1019,7 @@ public class MainActivity extends AppCompatActivity {
         manager.notify(1, customNotification);
 
     }
-    private void sendNotificationChange(String nSongName) {
+    private void sendNotificationChangePlay(String nSongName) {
 
         Intent intentPre = new Intent(PRE_SONG);
         Intent intentNext = new Intent(NEXT_SONG);
@@ -917,7 +1040,7 @@ public class MainActivity extends AppCompatActivity {
 
         notificationLayout.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
         notificationLayout.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
-        notificationLayout.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
+        notificationLayout.setOnClickPendingIntent(R.id.NImage, playPausePendingIntent);
 
         RemoteViews notificationLayoutExpanded = new RemoteViews(getPackageName(), R.layout.remoteview);
 //        notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, nSongName);
@@ -925,19 +1048,83 @@ public class MainActivity extends AppCompatActivity {
 
         notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
         notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
-        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NImage, playPausePendingIntent);
 
-        if (mp.isPlaying()) {
+//        if (mp.isPlaying()) {
+//        if (mpControl.songIsPlaying()) {
             notificationLayout.setTextViewText(R.id.NTvSongNow, "播放："+nSongName);
             notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, "播放："+nSongName);
             notificationLayout.setImageViewResource(R.id.NImage, R.drawable.pause);
+            notificationLayoutExpanded.setImageViewResource(R.id.NImage, R.drawable.pause);
 
-        } else {
+//        }
+
+//        if (mp.isPlaying()) {
+//            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
+//            notificationLayoutExpanded.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
+//        } else {
+//            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.playsong);
+//            notificationLayoutExpanded.setImageViewResource(R.id.NBtnPlayPause, R.drawable.playsong);
+//        }
+
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        // Apply the layouts to the notification
+        Notification customNotification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(notificationLayout)
+                .setCustomBigContentView(notificationLayoutExpanded)
+                .setOngoing(true)
+                .build();
+        manager.notify(1, customNotification);
+
+    }
+    private void sendNotificationChangePause(String nSongName) {
+
+        Intent intentPre = new Intent(PRE_SONG);
+        Intent intentNext = new Intent(NEXT_SONG);
+        Intent intentPlayPause = new Intent(PLAY_PAUSE_SONG);
+
+        PendingIntent prePendingIntent = PendingIntent.getBroadcast(this, 0, intentPre, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent nextPendingIntent = PendingIntent.getBroadcast(this, 0, intentNext, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent playPausePendingIntent = PendingIntent.getBroadcast(this, 0, intentPlayPause, PendingIntent.FLAG_IMMUTABLE);
+
+
+        // Get the layouts to use in the custom notification
+        RemoteViews notificationLayout = new RemoteViews(getPackageName(), R.layout.remoteview_play);
+//        notificationLayout.setTextViewText(R.id.NTvSongNow, nSongName);
+
+
+
+
+
+        notificationLayout.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
+        notificationLayout.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
+//        notificationLayout.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
+        notificationLayout.setOnClickPendingIntent(R.id.NImage, playPausePendingIntent);
+
+        RemoteViews notificationLayoutExpanded = new RemoteViews(getPackageName(), R.layout.remoteview);
+//        notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, nSongName);
+
+
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
+//        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NImage, playPausePendingIntent);
+
+//        if (mp.isPlaying()) {
+//        if (mpControl.songIsPlaying()) {
+//            notificationLayout.setTextViewText(R.id.NTvSongNow, "播放："+nSongName);
+//            notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, "播放："+nSongName);
+//            notificationLayout.setImageViewResource(R.id.NImage, R.drawable.pause);
+//
+//        } else {
             notificationLayout.setTextViewText(R.id.NTvSongNow, "暂停："+nSongName);
             notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, "暂停："+nSongName);
             notificationLayout.setImageViewResource(R.id.NImage, R.drawable.playsong);
-
-        }
+            notificationLayoutExpanded.setImageViewResource(R.id.NImage, R.drawable.playsong);
+//        }
 
 //        if (mp.isPlaying()) {
 //            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
@@ -1001,10 +1188,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-//        myReceiver=new MyReceiver();
-//        myReceiver=new MyReceiverIn();
+
         myReceiverIn=new MyReceiverIn();
-//        IntentFilter filter=new IntentFilter("ysPlay");
+
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(PLAY_PAUSE_SONG);
         intentFilter.addAction(PRE_SONG);
@@ -1048,15 +1234,15 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()){
                 case PLAY_PAUSE_SONG:
-                    Log.e("ysPlay123",PLAY_PAUSE_SONG);
+                    Log.e("Activity",PLAY_PAUSE_SONG);
                     playOrPause();
                     break;
                 case PRE_SONG:
-                    Log.e("ysPlay123",PRE_SONG);
+                    Log.e("Activity",PRE_SONG);
                     PreSong();
                     break;
                 case NEXT_SONG:
-                    Log.e("ysPlay123",NEXT_SONG);
+                    Log.e("Activity",NEXT_SONG);
                     NextSong();
                     break;
             }

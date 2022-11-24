@@ -31,8 +31,9 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
-
-
+        <service android:name=".MyService"
+            android:enabled="true"
+            android:exported="true"/>
 
     </application>
 

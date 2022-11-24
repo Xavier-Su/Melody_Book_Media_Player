@@ -10,11 +10,19 @@
         android:layout_weight="4"
         android:orientation="horizontal">
 
-        <ImageView
+
+
+        <Button
+            android:id="@+id/NBtnPlayPause"
             android:layout_width="90dp"
+            android:background="@drawable/ic_app_icon"
             android:layout_height="90dp"
-            android:background="@drawable/cd"
-            />
+            android:layout_gravity="top"
+            android:layout_margin="2dp"
+            android:layout_weight="0"
+            android:textColor="#696969"
+            android:textSize="15sp" />
+
         <ImageView
             android:layout_width="0dp"
             android:layout_height="90dp"
@@ -58,16 +66,12 @@
                     android:layout_weight="0"
                     android:textColor="#696969" />
 
-                <Button
-                    android:id="@+id/NBtnPlayPause"
-                    android:layout_width="40dp"
-                    android:background="@drawable/ic_app_icon"
-                    android:layout_height="40dp"
-                    android:layout_gravity="top"
-                    android:layout_margin="2dp"
-                    android:layout_weight="0"
-                    android:textColor="#696969"
-                    android:textSize="15sp" />
+                <ImageView
+                    android:id="@+id/NImage"
+                    android:layout_width="45dp"
+                    android:layout_height="45dp"
+                    android:background="@drawable/cd"
+                    />
 
                 <Button
                     android:id="@+id/NBtnNext"

@@ -18,7 +18,6 @@ public class MyReceiver extends BroadcastReceiver {
         switch (intent.getAction()){
             case PLAY_PAUSE_SONG:
                 Log.e("ysPlay123",PLAY_PAUSE_SONG);
-
                 break;
             case PRE_SONG:
                 Log.e("ysPlay123",PRE_SONG);
