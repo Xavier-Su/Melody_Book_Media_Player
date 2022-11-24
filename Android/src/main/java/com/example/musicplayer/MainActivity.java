@@ -596,7 +596,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void displaySongs() {
-//        SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();//临时变量
         final ArrayList<File> songs = findSong(Environment.getExternalStorageDirectory());
         String[] items = new String[songs.size()];
@@ -620,7 +619,6 @@ public class MainActivity extends AppCompatActivity {
                 assert name != null;
                 String nameKey = name.substring(0, name.lastIndexOf("."));
                 values.put("songName", nameKey);
-//                    System.out.println(" listMap: " + listMap);
             } else {
                 System.out.println("NO MATCH");
             }
