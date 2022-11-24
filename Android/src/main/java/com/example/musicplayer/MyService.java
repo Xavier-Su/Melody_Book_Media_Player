@@ -1,5 +1,8 @@
 package com.example.musicplayer;
 
+import static com.example.musicplayer.MainActivity.ifCycle;
+import static com.example.musicplayer.MainActivity.ifSeek;
+
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -14,37 +17,47 @@ import android.content.IntentFilter;
 import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.util.Log;
 import android.widget.RemoteViews;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
-import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.Objects;
 
 public class MyService extends Service {
 
     @SuppressLint("StaticFieldLeak")
     public ListDatabase myDbList;
+    private MyService.MyHandler handlerBar;
 
     public int positionSongNow=0;
     public int positionSongCount=0;
     public String  positionSongName ="";
 
+    public int musicTimeAll;
+    public int musicTimeNow;
+    public String showTimeAll;
+    public String showTimeNow;
+
     final String CHANNEL_ID="CHANNEL_ID";
+    final int TIMER_MSG = 0X001;
     public static final String PLAY_PAUSE_SONG="play_pause_song";
     public static final String NEXT_SONG="next_song";
     public static final String PRE_SONG="pre_song";
     public static final String DB_READ="db_read";
 
-
     public MediaPlayer mp;
     private MyService.MyReceiverIn myReceiverIn;
     private MpControl mpControl;
-
 
     @Override
     public void onCreate() {
@@ -62,13 +75,11 @@ public class MyService extends Service {
         Intent intentDbRead = new Intent(DB_READ);
         sendBroadcast(intentDbRead);
 
+        handlerBar = new MyHandler();
+
+        handlerBar.sendEmptyMessage(TIMER_MSG);
+
     }
-
-//    static public MediaPlayer createMediaPlayer(){
-//
-//        return mp;
-//    }
-
 
     @Nullable
     @Override
@@ -101,6 +112,8 @@ public class MyService extends Service {
                  mp.reset();
                  mp.setDataSource(filePath);
                  mp.prepare();
+                 musicTimeAll = mpControl.songGetTimeAll();
+                 showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
              } catch (IOException e) {
                  e.printStackTrace();
              }
@@ -128,10 +141,12 @@ public class MyService extends Service {
             }
         }
         public int songGetTimeAll(){
-            return mp.getDuration();
+            musicTimeAll=mp.getDuration();
+            return musicTimeAll;
         }
         public int songGetTimeCur(){
-            return mp.getCurrentPosition();
+             musicTimeNow=mp.getCurrentPosition();
+            return musicTimeNow;
         }
         public void songPositionJump(int PositionJump){
             mp.seekTo(PositionJump);
@@ -167,9 +182,9 @@ public class MyService extends Service {
              int countSong = positionSongCount;
 //        int nowCur = positionCur;
              int nowCur = positionSongNow;
-             System.out.println("countSong = " + countSong);
-             System.out.println("nowCur = " + nowCur);
-             System.out.println("dBGetPath(nowCur) = " + dBGetPath(nowCur));
+//             System.out.println("countSong = " + countSong);
+//             System.out.println("nowCur = " + nowCur);
+//             System.out.println("dBGetPath(nowCur) = " + dBGetPath(nowCur));
 //                Drawable drawable=getResources().getDrawable(R.drawable.select_color);
 
              if (nowCur < countSong-1) {
@@ -220,7 +235,36 @@ public class MyService extends Service {
 
     }
 
+    class MyHandler extends Handler {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            super.handleMessage(msg);
+//            Log.e("myHandler", "handleMessage");
 
+
+            if (!ifSeek) {
+                musicTimeNow = mpControl.songGetTimeCur();
+                showTimeNow = musicTimeNow / 1000 / 60 + ":" + musicTimeNow / 1000 % 60;
+//                songTimeNow.setText(showTimeNow);
+//                Log.e("myHandler", "showTimeNow="+showTimeNow);
+//                Log.e("myHandler", "showTimeAll="+showTimeAll);
+
+                if (Objects.equals(showTimeNow, showTimeAll)) {
+                    if (!ifCycle) {
+                        Toast.makeText(getApplicationContext(), "下一曲", Toast.LENGTH_SHORT).show();
+//                        Log.e("myHandler", "NextSong");
+                        mpControl.NextSong();
+                    } else {
+                        Toast.makeText(getApplicationContext(), "单曲循环", Toast.LENGTH_SHORT).show();
+                        mpControl.songPlay(mpControl.dBGetPath(positionSongNow));
+                    }
+                }
+            }
+            handlerBar.sendEmptyMessageDelayed(TIMER_MSG, 1000);
+
+
+        }
+    }
 
     private void createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
@@ -318,14 +362,6 @@ public class MyService extends Service {
             notificationLayout.setImageViewResource(R.id.NImage, R.drawable.pause);
             notificationLayoutExpanded.setImageViewResource(R.id.NImage, R.drawable.pause);
 
-//        if (mp.isPlaying()) {
-//            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
-//            notificationLayoutExpanded.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
-//        } else {
-//            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.playsong);
-//            notificationLayoutExpanded.setImageViewResource(R.id.NBtnPlayPause, R.drawable.playsong);
-//        }
-
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         // Apply the layouts to the notification
@@ -376,14 +412,6 @@ public class MyService extends Service {
             notificationLayout.setImageViewResource(R.id.NImage, R.drawable.playsong);
             notificationLayoutExpanded.setImageViewResource(R.id.NImage, R.drawable.playsong);
 
-//        if (mp.isPlaying()) {
-//            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
-//            notificationLayoutExpanded.setImageViewResource(R.id.NBtnPlayPause, R.drawable.pause);
-//        } else {
-//            notificationLayout.setImageViewResource(R.id.NBtnPlayPause, R.drawable.playsong);
-//            notificationLayoutExpanded.setImageViewResource(R.id.NBtnPlayPause, R.drawable.playsong);
-//        }
-
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         // Apply the layouts to the notification
@@ -400,8 +428,6 @@ public class MyService extends Service {
 
     public void initReceiver() {
 
-//        myReceiver=new MyReceiver();
-//        myReceiver=new MyReceiverIn();
         myReceiverIn= new MyReceiverIn();
 //        IntentFilter filter=new IntentFilter("ysPlay");
         IntentFilter intentFilter = new IntentFilter();
@@ -418,8 +444,6 @@ public class MyService extends Service {
             switch (intent.getAction()){
                 case PLAY_PAUSE_SONG:
                     Log.e("ysPlay",PLAY_PAUSE_SONG);
-//                    playOrPause();
-//                    mp.pause();
                     if (mp.isPlaying()){
                         mp.pause();
                         sendNotificationChangePause(positionSongName);
@@ -427,9 +451,7 @@ public class MyService extends Service {
                         mp.start();
                         sendNotificationChangePlay(positionSongName);
                     }
-//                    System.out.println("addawdaw"+mp.isPlaying());
-//                    System.out.println("1dwadaw"+mp.getDuration());
-//                    System.out.println("addawdaw"+mp.getCurrentPosition());
+
 //                    playOrPause();
                     break;
                 case PRE_SONG:

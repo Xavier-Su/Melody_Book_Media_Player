@@ -80,8 +80,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Permission permission;
     private MyHandler handlerBar;
-    private Boolean ifSeek = false;
-    private Boolean ifCycle = false;
+    static public Boolean ifSeek = false;
+    static public Boolean ifCycle = false;
     public int positionCur;
 
     public File file;
@@ -548,7 +548,7 @@ public class MainActivity extends AppCompatActivity {
 //            Log.e("myHandler", "change textview");
             MainActivity mainA = mTarget.get();
 
-            if (!mainA.ifSeek) {
+            if (!ifSeek) {
                 mainA.musicTimeNow = mainA.mpControl.songGetTimeCur();
                 mainA.showTimeNow = mainA.musicTimeNow / 1000 / 60 + ":" + mainA.musicTimeNow / 1000 % 60;
                 if (mainA.stopIf) {
@@ -561,7 +561,7 @@ public class MainActivity extends AppCompatActivity {
 //                if (!mp.isPlaying() && ifPlay) {
 
                 if (Objects.equals(mainA.showTimeNow, mainA.showTimeAll)) {
-                    if (!mainA.ifCycle) {
+                    if (!ifCycle) {
                         Toast.makeText(mainA.getApplicationContext(), "下一曲", Toast.LENGTH_SHORT).show();
                         mainA.NextSong();
                     } else {
@@ -569,7 +569,7 @@ public class MainActivity extends AppCompatActivity {
                         mainA.playAdapter.setSearchPosition(mainA.playAdapter.getSearchPosition());
                     }
                 }
-                
+
             }
             mainA.handlerBar.sendEmptyMessageDelayed(mainA.TIMER_MSG, 1000);
 
