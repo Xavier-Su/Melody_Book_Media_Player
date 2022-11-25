@@ -74,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
     private Button BtnFindAll;
     private EditText ESearchName;
     private Button BtnOrder;
+    private Button BtnTimer;
+    private TextView TTimer;
 
     private PlayAdapter playAdapter;
     private ObjectAnimator animator;
@@ -90,6 +92,9 @@ public class MainActivity extends AppCompatActivity {
     public int musicTimeNow;
     public String showTimeAll;
     public String showTimeNow;
+
+    public int timerLong=0;
+    public int timerPrepare=0;
 
 
     final String CHANNEL_ID = "CHANNEL_ID";
@@ -167,6 +172,8 @@ public class MainActivity extends AppCompatActivity {
         Button btnQuit = findViewById(R.id.BtnQuit);
         Button btnLocation = findViewById(R.id.BtnLocation);
         BtnOrder = findViewById(R.id.BtnOrder);
+        BtnTimer = findViewById(R.id.BtnTimer);
+        TTimer = findViewById(R.id.TTimer);
         ImageView imCd = findViewById(R.id.ImCd);
 
         animator = ObjectAnimator.ofFloat(imCd, "rotation", 0, 360.0F);
@@ -176,10 +183,38 @@ public class MainActivity extends AppCompatActivity {
 
         databaseRead();
 
-        int randomSkin = (int) (Math.random() * 14);
+        int randomSkin = (int) (Math.random() * 20);
         SkinEnable(randomSkin);
 
         bthSelect.setOnClickListener(view -> SelectSkin());
+
+        BtnTimer.setOnClickListener(view -> {
+            final String[] items = {"不定时", "5分钟", "10分钟",
+                    "15分钟", "20分钟", "25分钟",
+                    "30分钟", "35分钟", "40分钟",
+                    "45分钟","50分钟"};
+            AlertDialog dialog = new AlertDialog.Builder(this)
+//                .setIcon(R.mipmap.icon)//设置标题的图片
+                    .setTitle("选择时间定时关闭")//设置对话框的标题
+                    .setSingleChoiceItems(items, 0, (dialog1, which) -> {
+                        timerPrepare=which*5*60;
+//                        timerPrepare=which*10;
+
+                        Toast.makeText(MainActivity.this, items[which], Toast.LENGTH_SHORT).show();
+                    })
+                    .setPositiveButton("好了", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            timerLong=timerPrepare;
+                            mpControl.setTimerLong(timerLong);
+
+
+                            dialog.dismiss();
+                        }
+                    }).create();
+            dialog.show();
+
+        });
         BtnOrder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -505,14 +540,19 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
+
             if (!ifSeek) {
                 musicTimeNow = mpControl.songGetTimeCur();
                 showTimeNow = musicTimeNow / 1000 / 60 + ":" + musicTimeNow / 1000 % 60;
+                int timerLongPre=mpControl.getTimerLong();
+                String timerAct=timerLongPre / 60 + ":" + timerLongPre % 60;
+
                 if (stopIf) {
                     SeekB.setProgress(0);
                 } else {
                     SeekB.setProgress(musicTimeNow);
                 }
+                TTimer.setText(timerAct);
 
                 songTimeNow.setText(showTimeNow);
 //                if (!mp.isPlaying() && ifPlay) {
@@ -551,12 +591,16 @@ public class MainActivity extends AppCompatActivity {
             if (!ifSeek) {
                 mainA.musicTimeNow = mainA.mpControl.songGetTimeCur();
                 mainA.showTimeNow = mainA.musicTimeNow / 1000 / 60 + ":" + mainA.musicTimeNow / 1000 % 60;
+                int timerLongPre=mainA.mpControl.getTimerLong();
+//                System.out.println("timerLongPre = "+timerLongPre);
+                String timerAct="剩余时间\n"+timerLongPre / 60 + ":" + timerLongPre % 60;
                 if (mainA.stopIf) {
                     mainA.SeekB.setProgress(0);
                 } else {
                     mainA.SeekB.setProgress(mainA.musicTimeNow);
                 }
-
+                mainA.TTimer.setText(timerAct);
+//                System.out.println("timerAct = "+timerAct);
                 mainA.songTimeNow.setText(mainA.showTimeNow);
 //                if (!mp.isPlaying() && ifPlay) {
 
@@ -739,14 +783,37 @@ public class MainActivity extends AppCompatActivity {
         if (pos == 13) {
             MainLayout.setBackgroundResource(R.drawable.bg13);
         }
+        if (pos == 14) {
+            MainLayout.setBackgroundResource(R.drawable.bg14);
+        }
+        if (pos == 15) {
+            MainLayout.setBackgroundResource(R.drawable.bg15);
+        }
+        if (pos == 16) {
+            MainLayout.setBackgroundResource(R.drawable.bg16);
+        }
+        if (pos == 17) {
+            MainLayout.setBackgroundResource(R.drawable.bg17);
+        }
+        if (pos == 18) {
+            MainLayout.setBackgroundResource(R.drawable.bg18);
+        }
+        if (pos == 19) {
+            MainLayout.setBackgroundResource(R.drawable.bg19);
+        }
+        if (pos == 20) {
+            MainLayout.setBackgroundResource(R.drawable.bg20);
+        }
 
     }
 
     public void SelectSkin() {
         final String[] items = {"0号皮肤-璀璨", "1号皮肤-奶茶", "2号皮肤-白猫",
-                "3号皮肤-绿意", "4号皮肤-橙沙", "5号皮肤-棱角",
+                "3号皮肤-绿意", "4号皮肤-橙沙", "5号皮肤-画盘",
                 "6号皮肤-奶糖", "7号皮肤-静谧", "8号皮肤-粉黛",
-                "9号皮肤-花语", "10号皮肤-梨落", "11号皮肤-云端", "12号皮肤-秋意", "13号皮肤-眠梦"};
+                "9号皮肤-千山", "10号皮肤-梨落", "11号皮肤-云端",
+                "12号皮肤-秋意", "13号皮肤-眠梦", "14号皮肤-雪松",
+                "15号皮肤-曲径", "16号皮肤-画境", "17号皮肤-雪晶", "18号皮肤-饼干", "19号皮肤-绿缀", "20号皮肤-嘻嘻"};
 
         AlertDialog dialog = new AlertDialog.Builder(this)
 //                .setIcon(R.mipmap.icon)//设置标题的图片
@@ -838,7 +905,6 @@ public class MainActivity extends AppCompatActivity {
         // Get the layouts to use in the custom notification
         RemoteViews notificationLayout = new RemoteViews(getPackageName(), R.layout.remoteview_play);
 //        notificationLayout.setTextViewText(R.id.NTvSongNow, nSongName);
-
 
         notificationLayout.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
         notificationLayout.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);

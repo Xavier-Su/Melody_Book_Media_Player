@@ -42,9 +42,12 @@ public class MyService extends Service {
     public int positionSongNow=0;
     public int positionSongCount=0;
     public String  positionSongName ="";
+    public int timerLong=0;
 
     public int musicTimeAll;
     public int musicTimeNow;
+    public int musicTimeOver;
+    public String showTimeOver;
     public String showTimeAll;
     public String showTimeNow;
 
@@ -94,6 +97,13 @@ public class MyService extends Service {
      class MpControl extends Binder{
 
 
+         public void setTimerLong(int timerNum) {
+             timerLong = timerNum;
+         }
+         public int getTimerLong() {
+             return timerLong;
+         }
+
          public void setPositionSongNow(int positionNow) {
              positionSongNow = positionNow;
          }
@@ -113,7 +123,10 @@ public class MyService extends Service {
                  mp.setDataSource(filePath);
                  mp.prepare();
                  musicTimeAll = mpControl.songGetTimeAll();
+                 musicTimeOver=musicTimeAll-1000;
                  showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
+                 showTimeOver = musicTimeOver / 1000 / 60 + ":" + musicTimeOver / 1000 % 60;
+
              } catch (IOException e) {
                  e.printStackTrace();
              }
@@ -240,7 +253,15 @@ public class MyService extends Service {
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
 //            Log.e("myHandler", "handleMessage");
+            if (timerLong>1){timerLong--;}
+            else if (timerLong==1){
+                timerLong=0;
+                Toast.makeText(getApplicationContext(), "定时结束\n关闭应用", Toast.LENGTH_SHORT).show();
+                mp.stop();
+//                onDestroy();
+//                stopSelf();
 
+            }
 
             if (!ifSeek) {
                 musicTimeNow = mpControl.songGetTimeCur();
@@ -249,7 +270,7 @@ public class MyService extends Service {
 //                Log.e("myHandler", "showTimeNow="+showTimeNow);
 //                Log.e("myHandler", "showTimeAll="+showTimeAll);
 
-                if (Objects.equals(showTimeNow, showTimeAll)) {
+                if (Objects.equals(showTimeNow, showTimeOver)) {
                     if (!ifCycle) {
                         Toast.makeText(getApplicationContext(), "下一曲", Toast.LENGTH_SHORT).show();
 //                        Log.e("myHandler", "NextSong");
