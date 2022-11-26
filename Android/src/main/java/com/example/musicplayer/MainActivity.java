@@ -319,7 +319,11 @@ public class MainActivity extends AppCompatActivity {
                             Toast.makeText(MainActivity.this, items[which], Toast.LENGTH_SHORT).show();
                         })
                         .setNegativeButton("手滑误触", (dialog2, which) -> {
+<<<<<<< HEAD
 //                            Toast.makeText(MainActivity.this, "那我走？", Toast.LENGTH_SHORT).show();
+=======
+                            Toast.makeText(MainActivity.this, "那我走？", Toast.LENGTH_SHORT).show();
+>>>>>>> main
                             dialog2.dismiss();
                         })
                         .setPositiveButton("确定", new DialogInterface.OnClickListener() {
@@ -551,8 +555,13 @@ public class MainActivity extends AppCompatActivity {
                 String songName=listSongName.get(pos);
                 playAdapter.setmPosition(pos);
                 playViaName(songName);
+<<<<<<< HEAD
 
 
+=======
+
+
+>>>>>>> main
 //                String song_path = pathList.get(pos);
 //                positionCur = pos;
 //                file = new File(song_path);
@@ -871,7 +880,11 @@ public class MainActivity extends AppCompatActivity {
                     intent.setAction("android.intent.action.VIEW");
                     intent.setData(uri);
                     startActivity(intent);
+<<<<<<< HEAD
                     Toast.makeText(MainActivity.this, "向前进！", Toast.LENGTH_SHORT).show();
+=======
+                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
+>>>>>>> main
                     dialog.dismiss();
                 }).create();
         dialog.show();
@@ -893,7 +906,11 @@ public class MainActivity extends AppCompatActivity {
                     intent.setAction("android.intent.action.VIEW");
                     intent.setData(uri);
                     startActivity(intent);
+<<<<<<< HEAD
                     Toast.makeText(MainActivity.this, "观影模式", Toast.LENGTH_SHORT).show();
+=======
+                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
+>>>>>>> main
                     dialog.dismiss();
                 }).create();
         dialog.show();
@@ -914,7 +931,11 @@ public class MainActivity extends AppCompatActivity {
                     intent.setAction("android.intent.action.VIEW");
                     intent.setData(uri);
                     startActivity(intent);
+<<<<<<< HEAD
                     Toast.makeText(MainActivity.this, "看图模式", Toast.LENGTH_SHORT).show();
+=======
+                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
+>>>>>>> main
                     dialog.dismiss();
                 }).create();
         dialog.show();
@@ -1277,6 +1298,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     TvSongName.setText(mpControl.getPositionSongNameNow());
+<<<<<<< HEAD
                     break;
                 case PRE_SONG_MAIN:
                     Log.e("Activity", PRE_SONG_MAIN);
@@ -1297,6 +1319,28 @@ public class MainActivity extends AppCompatActivity {
                     animator.start();
 //                    PreSong();
                     break;
+=======
+                    break;
+                case PRE_SONG_MAIN:
+                    Log.e("Activity", PRE_SONG_MAIN);
+
+                    musicTimeAll = mpControl.songGetTimeAll();
+                    showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
+//                    SeekB.setProgress(0);
+                    SeekB.setMax(musicTimeAll);
+                    TSongTimeAll.setText(showTimeAll);
+
+
+                    playAdapter.setmPosition(mpControl.getPositionSongNow());
+                    playAdapter.notifyDataSetChanged();
+
+                    TvSongNow.setText("正在播放：");
+                    TvSongName.setText(mpControl.getPositionSongNameNow());
+                    BtnPlayPause.setBackgroundResource(R.drawable.pause);
+                    animator.start();
+//                    PreSong();
+                    break;
+>>>>>>> main
                 case NEXT_SONG_MAIN:
                     Log.e("Activity", NEXT_SONG_MAIN);
 //                    int countSong = mpControl.getPositionSongCount();

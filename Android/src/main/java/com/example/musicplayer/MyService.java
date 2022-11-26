@@ -341,7 +341,11 @@ public class MyService extends Service {
 //                        Log.e("myHandler", "NextSong");
                         mpControl.NextSong();
                     } else {
+<<<<<<< HEAD
 //                        Toast.makeText(getApplicationContext(), "单曲循环", Toast.LENGTH_SHORT).show();
+=======
+                        Toast.makeText(getApplicationContext(), "单曲循环", Toast.LENGTH_SHORT).show();
+>>>>>>> main
 //                        mpControl.songPlay(mpControl.dBGetPath(positionSongNow));
                         mpControl.songCycle();
 
