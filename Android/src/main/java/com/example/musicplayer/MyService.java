@@ -58,6 +58,11 @@ public class MyService extends Service {
     public static final String PRE_SONG="pre_song";
     public static final String DB_READ="db_read";
 
+    public static final String PLAY_PAUSE_SONG_MAIN = "play_pause_song_main";
+    public static final String NEXT_SONG_MAIN  = "next_song_main";
+    public static final String PRE_SONG_MAIN  = "pre_song_main";
+    public static final String CLOSE_SONG_MAIN  = "close_song_main";
+
     public MediaPlayer mp;
     private MyService.MyReceiverIn myReceiverIn;
     private MpControl mpControl;
@@ -103,9 +108,18 @@ public class MyService extends Service {
          public int getTimerLong() {
              return timerLong;
          }
+         public String getPositionSongNameNow(){
+            return positionSongName;
+         }
 
          public void setPositionSongNow(int positionNow) {
              positionSongNow = positionNow;
+         }
+         public int getPositionSongNow() {
+             return positionSongNow;
+         }
+         public int getPositionSongCount() {
+             return positionSongCount;
          }
 
          public void setPositionSongName(String positionName) {
@@ -116,13 +130,36 @@ public class MyService extends Service {
              positionSongCount = positionCount;
          }
 
+         public void songPlayViaName(String songName){
+
+             try {
+                 String filePath=dBGetPathViaName(songName);
+
+
+                 mp.reset();
+                 mp.setDataSource(filePath);
+                 mp.prepare();
+                 positionSongName=songName;
+
+                 musicTimeAll = mp.getDuration();
+                 musicTimeOver=musicTimeAll-1000;
+                 showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
+                 showTimeOver = musicTimeOver / 1000 / 60 + ":" + musicTimeOver / 1000 % 60;
+                 mp.start();
+                 positionSongNow=myDbList.getPosViaName(songName);
+                 positionSongCount=myDbList.getPosCount();
+
+             } catch (IOException e) {
+                 e.printStackTrace();
+             }
+         }
          public void songPlay(String filePath){
 
              try {
                  mp.reset();
                  mp.setDataSource(filePath);
                  mp.prepare();
-                 musicTimeAll = mpControl.songGetTimeAll();
+                 musicTimeAll = mp.getDuration();
                  musicTimeOver=musicTimeAll-1000;
                  showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
                  showTimeOver = musicTimeOver / 1000 / 60 + ":" + musicTimeOver / 1000 % 60;
@@ -164,7 +201,23 @@ public class MyService extends Service {
         public void songPositionJump(int PositionJump){
             mp.seekTo(PositionJump);
         }
+        public void songCycle(){
+            mp.seekTo(0);
+            mp.start();
+        }
 
+        public void PlayOrPause(){
+            if (mp.isPlaying()){
+                mp.pause();
+
+                sendNotificationChangePause(positionSongName);
+            }else {
+                mp.start();
+                sendNotificationChangePlay(positionSongName);
+            }
+            Intent intent = new Intent(PLAY_PAUSE_SONG_MAIN);
+            sendBroadcast(intent);
+        }
          public void PreSong() {
              int countSong = positionSongCount;
              int nowCur = positionSongNow;
@@ -184,19 +237,20 @@ public class MyService extends Service {
                 mpControl.songStart();
 
              }
+             Intent intent = new Intent(PRE_SONG_MAIN);
+             sendBroadcast(intent);
+             sendNotificationChangePlay(positionSongName);
 
 
 
          }
-
-
          public void NextSong() {
 
              int countSong = positionSongCount;
 //        int nowCur = positionCur;
              int nowCur = positionSongNow;
-//             System.out.println("countSong = " + countSong);
-//             System.out.println("nowCur = " + nowCur);
+             System.out.println("countSong = " + countSong);
+             System.out.println("nowCur = " + nowCur);
 //             System.out.println("dBGetPath(nowCur) = " + dBGetPath(nowCur));
 //                Drawable drawable=getResources().getDrawable(R.drawable.select_color);
 
@@ -215,6 +269,9 @@ public class MyService extends Service {
                  mpControl.songStart();
 
              }
+             Intent intent = new Intent(NEXT_SONG_MAIN);
+             sendBroadcast(intent);
+             sendNotificationChangePlay(positionSongName);
 //        playAdapter.mListener.onClick(nowCur);
          }
 
@@ -245,6 +302,10 @@ public class MyService extends Service {
 
             return myDbList.getNameList().get(pos);
         }
+        public String dBGetPathViaName(String songName){
+
+            return myDbList.getPathViaName(songName);
+        }
 
     }
 
@@ -257,7 +318,10 @@ public class MyService extends Service {
             else if (timerLong==1){
                 timerLong=0;
                 Toast.makeText(getApplicationContext(), "定时结束\n关闭应用", Toast.LENGTH_SHORT).show();
-                mp.stop();
+//                mp.stop();
+                mp.pause();
+                Intent intent = new Intent(CLOSE_SONG_MAIN);
+                sendBroadcast(intent);
 //                onDestroy();
 //                stopSelf();
 
@@ -277,7 +341,9 @@ public class MyService extends Service {
                         mpControl.NextSong();
                     } else {
                         Toast.makeText(getApplicationContext(), "单曲循环", Toast.LENGTH_SHORT).show();
-                        mpControl.songPlay(mpControl.dBGetPath(positionSongNow));
+//                        mpControl.songPlay(mpControl.dBGetPath(positionSongNow));
+                        mpControl.songCycle();
+
                     }
                 }
             }
@@ -465,25 +531,19 @@ public class MyService extends Service {
             switch (intent.getAction()){
                 case PLAY_PAUSE_SONG:
                     Log.e("ysPlay",PLAY_PAUSE_SONG);
-                    if (mp.isPlaying()){
-                        mp.pause();
-                        sendNotificationChangePause(positionSongName);
-                    }else {
-                        mp.start();
-                        sendNotificationChangePlay(positionSongName);
-                    }
+                    mpControl.PlayOrPause();
 
 //                    playOrPause();
                     break;
                 case PRE_SONG:
                     Log.e("ysPlay",PRE_SONG);
                     mpControl.PreSong();
-                    sendNotificationChangePlay(positionSongName);
+
                     break;
                 case NEXT_SONG:
                     Log.e("ysPlay",NEXT_SONG);
                     mpControl.NextSong();
-                    sendNotificationChangePlay(positionSongName);
+
                     break;
             }
 

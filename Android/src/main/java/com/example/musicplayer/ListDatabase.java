@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ListDatabase {
     private MyDatabaseHelper dbHelper;
@@ -54,7 +55,6 @@ public class ListDatabase {
         cursor.close();
         return dataBaseNameList;
     }
-
     public List<String> getPathList(){
         List<String> dataBasePathList = new ArrayList<>();
         String rawQuerySql = null;
@@ -68,6 +68,36 @@ public class ListDatabase {
         cursor.close();
         return dataBasePathList;
     }
+    public String getPathViaName(String songName){
+        String songPathViaName = "";
+        String rawQuerySql = null;
+        rawQuerySql = "select * from songlist where songName = "+"\""+songName+"\"";
+        Cursor cursor = db.rawQuery(rawQuerySql, null);
+        while (cursor.moveToNext()) {
+            @SuppressLint("Range") String songPath = cursor.getString(cursor.getColumnIndex("songPath"));
+//                        System.out.println("songPath==="+songPath);
+            songPathViaName=songPath;
+        }
+        cursor.close();
+        return songPathViaName;
+    }
+
+    public int getPosViaName(String songName){
+        int posViaName=0;
+        List<String> dataBaseNameList = getNameList();
+        for (int i = 0; i < dataBaseNameList.size(); i++) {
+
+            if (Objects.equals(dataBaseNameList.get(i), songName)){
+                posViaName=i;
+            }
+        }
+        return posViaName;
+    }
+        public int getPosCount(){
+        List<String> dataBaseNameList = getNameList();
+        return dataBaseNameList.size();
+    }
+
 
 
 }
