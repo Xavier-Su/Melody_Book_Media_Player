@@ -113,6 +113,9 @@ public class MainActivity extends AppCompatActivity {
     public static final String CLOSE_SONG_MAIN  = "close_song_main";
 //    public static final String DB_READ="db_read";
 
+    private int songType=0;
+    private int skinPos=1;
+
     private MyService.MpControl mpControl;
 
     private final ServiceConnection connection = new ServiceConnection() {
@@ -196,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
         databaseRead();
 
         int randomSkin = (int) (Math.random() * 20);
+        skinPos=randomSkin;
         SkinEnable(randomSkin);
 
         bthSelect.setOnClickListener(view -> SelectSkin());
@@ -303,11 +307,44 @@ public class MainActivity extends AppCompatActivity {
         BtnFindAll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                TvSongName.setText("扫描本地音乐中...");
-                BtnFindAll.setText("扫描中...");
-                MyAlertDialog();
-                Toast.makeText(MainActivity.this, "扫描本地音乐中...", Toast.LENGTH_SHORT).show();
-                new WorkThread().start();
+
+                final String[] items = {"我全都要", "仅MP3", "仅WAV",
+                        "仅FLAC", "仅M4A", "隐藏选项-MP4听声"};
+
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+//                .setIcon(R.mipmap.icon)//设置标题的图片
+                        .setTitle("请选择扫描歌曲类型")//设置对话框的标题
+                        .setSingleChoiceItems(items, songType, (dialog1, which) -> {
+                            songType=which;
+                            Toast.makeText(MainActivity.this, items[which], Toast.LENGTH_SHORT).show();
+                        })
+                        .setNegativeButton("手滑误触", (dialog2, which) -> {
+                            Toast.makeText(MainActivity.this, "那我走？", Toast.LENGTH_SHORT).show();
+                            dialog2.dismiss();
+                        })
+                        .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                                dialog.dismiss();
+
+                                TvSongName.setText("扫描本地音乐中...");
+                                BtnFindAll.setText("扫描中...");
+                                MyAlertDialog();
+                                Toast.makeText(MainActivity.this, "扫描本地音乐中...", Toast.LENGTH_SHORT).show();
+                                new WorkThread().start();
+                            }
+                        }).create();
+                dialog.show();
+
+
+
+//                TvSongName.setText("扫描本地音乐中...");
+//                BtnFindAll.setText("扫描中...");
+//                MyAlertDialog();
+//                songType=0;
+//                Toast.makeText(MainActivity.this, "扫描本地音乐中...", Toast.LENGTH_SHORT).show();
+//                new WorkThread().start();
 
             }
         });
@@ -684,7 +721,7 @@ public class MainActivity extends AppCompatActivity {
                 if (singleFile.isDirectory() && !singleFile.isHidden()) {
                     arrayList.addAll(findSong(singleFile));
                 } else {
-                    if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".wav")) {
+                    if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".flac")|| singleFile.getName().endsWith(".wav")) {
                         arrayList.add(singleFile);
                     }
                 }
@@ -694,9 +731,60 @@ public class MainActivity extends AppCompatActivity {
         return arrayList;
     }
 
+    public ArrayList<File> findSongType(File file) {
+        ArrayList<File> arrayList = new ArrayList<>();
+        File[] files = file.listFiles();
+        if (files != null) {
+            for (File singleFile : files) {
+                if (singleFile.isDirectory() && !singleFile.isHidden()) {
+                    arrayList.addAll(findSongType(singleFile));
+                } else {
+                    switch (songType){
+                        case 0:
+                            if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".flac")|| singleFile.getName().endsWith(".wav")|| singleFile.getName().endsWith(".m4a")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 1:
+                            if (singleFile.getName().endsWith(".mp3")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 2:
+                            if (singleFile.getName().endsWith(".wav")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 3:
+                            if (singleFile.getName().endsWith(".flac")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 4:
+                            if (singleFile.getName().endsWith(".m4a")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 5:
+                            if (singleFile.getName().endsWith(".mp4")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                    }
+//                    if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".flac")|| singleFile.getName().endsWith(".wav")) {
+//                        arrayList.add(singleFile);
+//                    }
+                }
+            }
+        }
+
+        return arrayList;
+    }
+
     public void displaySongs() {
         ContentValues values = new ContentValues();//临时变量
-        final ArrayList<File> songs = findSong(Environment.getExternalStorageDirectory());
+//        final ArrayList<File> songs = findSong(Environment.getExternalStorageDirectory());
+        final ArrayList<File> songs = findSongType(Environment.getExternalStorageDirectory());
         String[] items = new String[songs.size()];
 
 //        String patternName = "[^\\/\\\\]+$";
@@ -771,7 +859,7 @@ public class MainActivity extends AppCompatActivity {
         dialog = new AlertDialog.Builder(this)
 //                .setIcon(R.mipmap.icon)//设置标题的图片
                 .setTitle("是否跳转浏览器进行网络寻歌")//设置对话框的标题
-                .setMessage("可在跳转的网站下载喜欢的歌曲(选择mp3格式，注意歌曲命名)\n然后使用本软件的扫描歌曲功能以入库本地列表\n接下来享受音乐的旅程吧\n(不可相信广告)")//设置对话框的内容
+                .setMessage("可在跳转的网站下载喜欢的歌曲(可选择mp3/wav/flac/m4a格式，注意歌曲命名)\n然后使用本软件的扫描歌曲功能以入库本地列表\n接下来享受音乐的旅程吧\n(不可相信广告)")//设置对话框的内容
                 //设置对话框的按钮
                 .setNegativeButton("手滑取消", (dialog, which) -> {
 //                    Toast.makeText(MainActivity.this, "返回", Toast.LENGTH_SHORT).show();
@@ -920,8 +1008,10 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog dialog = new AlertDialog.Builder(this)
 //                .setIcon(R.mipmap.icon)//设置标题的图片
                 .setTitle("预置皮肤列表")//设置对话框的标题
-                .setSingleChoiceItems(items, 1, (dialog1, which) -> {
+                .setSingleChoiceItems(items, skinPos, (dialog1, which) -> {
+                    skinPos=which;
                     SkinEnable(which);
+                    dialog1.dismiss();
                     Toast.makeText(MainActivity.this, items[which], Toast.LENGTH_SHORT).show();
                 })
                 .setPositiveButton("确定", new DialogInterface.OnClickListener() {
@@ -1157,7 +1247,6 @@ public class MainActivity extends AppCompatActivity {
 //        remoteViews.setImageViewResource(R.id.icon, R.drawable.ic_launcher);//设置图片样式
 //        remoteViews.setOnClickPendingIntent(R.id.NBtnNext, pendingIntent);//点击跳转事件
 //
-
         //为prev控件注册事件
         remoteViews.setOnClickPendingIntent(R.id.NBtnPre, prevPendingIntent);
         remoteViews.setOnClickPendingIntent(R.id.NBtnPlayPause, prevPendingIntent);
