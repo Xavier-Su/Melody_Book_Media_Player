@@ -49,6 +49,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -69,12 +70,13 @@ public class MainActivity extends AppCompatActivity {
     private Button BtnPlayPause;
 
     private RecyclerView RvItem;
-    private TextView songTimeNow;
-    private TextView songTimeAll;
+    private TextView TSongTimeNow;
+    private TextView TSongTimeAll;
     private Button BtnFindAll;
     private EditText ESearchName;
     private Button BtnOrder;
     private Button BtnTimer;
+    private Button BtnPicture;
     private TextView TTimer;
 
     private PlayAdapter playAdapter;
@@ -98,11 +100,21 @@ public class MainActivity extends AppCompatActivity {
 
 
     final String CHANNEL_ID = "CHANNEL_ID";
-    public static final String PLAY_PAUSE_SONG = "play_pause_song";
+
+    public static final String PLAY_PAUSE_SONG="play_pause_song";
+    public static final String NEXT_SONG="next_song";
+    public static final String PRE_SONG="pre_song";
+    public static final String DB_READ="db_read";
+
+    public static final String PLAY_PAUSE_SONG_MAIN = "play_pause_song_main";
     //    static final String PAUSE_SONG="pause_song";
-    public static final String NEXT_SONG = "next_song";
-    public static final String PRE_SONG = "pre_song";
+    public static final String NEXT_SONG_MAIN  = "next_song_main";
+    public static final String PRE_SONG_MAIN  = "pre_song_main";
+    public static final String CLOSE_SONG_MAIN  = "close_song_main";
 //    public static final String DB_READ="db_read";
+
+    private int songType=0;
+    private int skinPos=1;
 
     private MyService.MpControl mpControl;
 
@@ -130,6 +142,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         permission = new Permission();
         permission.checkerPermission(this);
+
+        initReceiver();
 
         myDbList = new ListDatabase(this);
 //        sendNotificationMsg();
@@ -163,8 +177,8 @@ public class MainActivity extends AppCompatActivity {
         SeekB = findViewById(R.id.MusicSeekBar);
         TvSongNow = findViewById(R.id.TvSongNow);
         TvSongName = findViewById(R.id.TvSongName);
-        songTimeNow = findViewById(R.id.songTimeNow);
-        songTimeAll = findViewById(R.id.songTimeAll);
+        TSongTimeNow = findViewById(R.id.TSongTimeNow);
+        TSongTimeAll = findViewById(R.id.TSongTimeAll);
         ESearchName = findViewById(R.id.ESearchName);
         Button BSearchSong = findViewById(R.id.BSearchSong);
         Button btnPre = findViewById(R.id.BtnPre);
@@ -173,6 +187,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnLocation = findViewById(R.id.BtnLocation);
         BtnOrder = findViewById(R.id.BtnOrder);
         BtnTimer = findViewById(R.id.BtnTimer);
+        BtnPicture = findViewById(R.id.BtnPicture);
         TTimer = findViewById(R.id.TTimer);
         ImageView imCd = findViewById(R.id.ImCd);
 
@@ -184,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
         databaseRead();
 
         int randomSkin = (int) (Math.random() * 20);
+        skinPos=randomSkin;
         SkinEnable(randomSkin);
 
         bthSelect.setOnClickListener(view -> SelectSkin());
@@ -213,7 +229,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }).create();
             dialog.show();
-
         });
         BtnOrder.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -274,26 +289,62 @@ public class MainActivity extends AppCompatActivity {
         btnStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ifPlay = false;
-//                mp.stop();
-                mpControl.songStop();
-//                mp.reset();
-                stopIf = true;
-                BtnPlayPause.setBackgroundResource(R.drawable.playsong);
-                TvSongNow.setText("停止播放：");
-                TvSongName.setText("暂未播放");
-                SeekB.setProgress(0);
-                animator.pause();
+
+                MyOnlineVideoAlertDialog();
+
+//                ifPlay = false;
+////                mp.stop();
+//                mpControl.songStop();
+////                mp.reset();
+//                stopIf = true;
+//                BtnPlayPause.setBackgroundResource(R.drawable.playsong);
+//                TvSongNow.setText("停止播放：");
+//                TvSongName.setText("暂未播放");
+//                SeekB.setProgress(0);
+//                animator.pause();
             }
         });
         BtnFindAll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                TvSongName.setText("扫描本地音乐中...");
-                BtnFindAll.setText("扫描中...");
-                MyAlertDialog();
-                Toast.makeText(MainActivity.this, "扫描本地音乐中...", Toast.LENGTH_SHORT).show();
-                new WorkThread().start();
+
+                final String[] items = {"我全都要", "仅MP3", "仅WAV",
+                        "仅FLAC", "仅M4A", "隐藏选项-MP4听声"};
+
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+//                .setIcon(R.mipmap.icon)//设置标题的图片
+                        .setTitle("请选择扫描歌曲类型")//设置对话框的标题
+                        .setSingleChoiceItems(items, songType, (dialog1, which) -> {
+                            songType=which;
+                            Toast.makeText(MainActivity.this, items[which], Toast.LENGTH_SHORT).show();
+                        })
+                        .setNegativeButton("手滑误触", (dialog2, which) -> {
+//                            Toast.makeText(MainActivity.this, "那我走？", Toast.LENGTH_SHORT).show();
+                            dialog2.dismiss();
+                        })
+                        .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                                dialog.dismiss();
+
+                                TvSongName.setText("扫描本地音乐中...");
+                                BtnFindAll.setText("扫描中...");
+                                MyAlertDialog();
+                                Toast.makeText(MainActivity.this, "扫描本地音乐中...", Toast.LENGTH_SHORT).show();
+                                new WorkThread().start();
+                            }
+                        }).create();
+                dialog.show();
+
+
+
+//                TvSongName.setText("扫描本地音乐中...");
+//                BtnFindAll.setText("扫描中...");
+//                MyAlertDialog();
+//                songType=0;
+//                Toast.makeText(MainActivity.this, "扫描本地音乐中...", Toast.LENGTH_SHORT).show();
+//                new WorkThread().start();
 
             }
         });
@@ -309,33 +360,37 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                Toast.makeText(MainActivity.this, "开始跳动", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(MainActivity.this, "开始跳动", Toast.LENGTH_SHORT).show();
                 mpControl.songPause();
                 ifSeek = true;
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                Toast.makeText(MainActivity.this, "结束跳动", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(MainActivity.this, "结束跳动", Toast.LENGTH_SHORT).show();
                 mpControl.songStart();
                 mpControl.songPositionJump(PositionJump);
                 ifSeek = false;
 
             }
         });
-        btnNext.setOnClickListener(view -> NextSong());
-        btnPre.setOnClickListener(view -> PreSong());
+//        btnNext.setOnClickListener(view -> NextSong());
+        btnNext.setOnClickListener(view ->
+        {   mpControl.NextSong();
+            TvSongNow.setText("正在播放：");
+            TvSongName.setText(mpControl.getPositionSongNameNow());
+
+        });
+//        btnPre.setOnClickListener(view -> PreSong());
+        btnPre.setOnClickListener(view -> mpControl.PreSong());
         btnQuit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                MyOnlineAlertDialog();
-                Uri uri = Uri.parse("https://tools.liumingye.cn/music/#/");
-                Intent intent = new Intent();
-                intent.setAction("android.intent.action.VIEW");
-                intent.setData(uri);
-                startActivity(intent);
+                MyOnlineMusicAlertDialog();
+
             }
         });
+        BtnPicture.setOnClickListener(view -> MyOnlinePictureAlertDialog());
 
     }
 
@@ -349,7 +404,6 @@ public class MainActivity extends AppCompatActivity {
         animator.start();
 
         mpControl.songPlay(file.getAbsolutePath());
-
 
 //            int musicTimeAll = mp.getDuration();
         musicTimeAll = mpControl.songGetTimeAll();
@@ -365,50 +419,82 @@ public class MainActivity extends AppCompatActivity {
         stopIf = false;
 //            BtnPlayPause.setText("暂停");
         songNameNow = file.getName();
+//        songNameNow = mpControl.getPositionSongNameNow();
+
         TvSongName.setText(songNameNow);
-        songTimeAll.setText(showTimeAll);
+        TSongTimeAll.setText(showTimeAll);
         BtnPlayPause.setBackgroundResource(R.drawable.pause);
         mpControl.setPositionSongName(songNameNow);
         sendNotificationChangePlay(songNameNow);
 
     }
+    private void playViaName(String songName) {
+//        mp.reset();
+        mpControl.songRest();
+
+        animator.start();
+
+        mpControl.songPlayViaName(songName);
+//        mpControl.songStart();
+//            int musicTimeAll = mp.getDuration();
+        musicTimeAll = mpControl.songGetTimeAll();
+
+        showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
+        SeekB.setMax(musicTimeAll);
+        SeekB.setProgress(0);
+        TSongTimeAll.setText(showTimeAll);
+//        System.out.println("songTimeAll"+showTimeAll+"\nmusicTimeAll"+musicTimeAll);
+        TvSongNow.setText("正在播放：");
+        TvSongName.setText(mpControl.getPositionSongNameNow());
+        BtnPlayPause.setBackgroundResource(R.drawable.pause);
+        handlerBar.sendEmptyMessage(TIMER_MSG);
+////            mp.start();
+//
+//
+//        ifPlay = true;
+//        stopIf = false;
+////            BtnPlayPause.setText("暂停");
+//        songNameNow = file.getName();
+////        songNameNow = mpControl.getPositionSongNameNow();
+//
+//        TvSongName.setText(songNameNow);
+//        TSongTimeAll.setText(showTimeAll);
+//        BtnPlayPause.setBackgroundResource(R.drawable.pause);
+//        mpControl.setPositionSongName(songNameNow);
+//        sendNotificationChangePlay(songNameNow);
+
+    }
 
     private void playOrPause() {
 //        if (!mp.isPlaying()) {
-        if (!mpControl.songIsPlaying()) {
+        mpControl.PlayOrPause();
 
-            if (stopIf) {
-
-                mpControl.songPrepare();
-                stopIf = false;
-            }
-
-
-//            mp.start();
-            mpControl.songStart();
-
-
-//            SeekB.setMax(mp.getDuration());
-            SeekB.setMax(mpControl.songGetTimeAll());
-//                    BtnPlayPause.setText("暂停");
-            BtnPlayPause.setBackgroundResource(R.drawable.pause);
-            TvSongNow.setText("正在播放：");
-            TvSongName.setText(songNameNow);
-            mpControl.setPositionSongName(songNameNow);
-            animator.resume();
-            ifPlay = true;
-        } else {
-            ifPlay = false;
-//            mp.pause();
-            mpControl.songPause();
-//                    BtnPlayPause.setText("播放");
-            BtnPlayPause.setBackgroundResource(R.drawable.playsong);
-            TvSongNow.setText("暂停播放：");
-            animator.pause();
-            mpControl.setPositionSongName(songNameNow);
-            sendNotificationChangePause(songNameNow);
-
-        }
+//        if (!mpControl.songIsPlaying()) {
+//            if (stopIf) {
+//                mpControl.songPrepare();
+//                stopIf = false;
+//            }
+//            mpControl.songStart();
+//            SeekB.setMax(mpControl.songGetTimeAll());
+////                    BtnPlayPause.setText("暂停");
+//            BtnPlayPause.setBackgroundResource(R.drawable.pause);
+//            TvSongNow.setText("正在播放：");
+//            TvSongName.setText(songNameNow);
+//            mpControl.setPositionSongName(songNameNow);
+//            animator.resume();
+//            ifPlay = true;
+//        } else {
+//            ifPlay = false;
+////            mp.pause();
+//            mpControl.songPause();
+////                    BtnPlayPause.setText("播放");
+//            BtnPlayPause.setBackgroundResource(R.drawable.playsong);
+//            TvSongNow.setText("暂停播放：");
+//            animator.pause();
+//            mpControl.setPositionSongName(songNameNow);
+//            sendNotificationChangePause(songNameNow);
+//
+//        }
 
     }
 
@@ -462,16 +548,22 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(int pos) {
 //                        Toast.makeText(MainActivity.this, "click = "+pos,Toast.LENGTH_SHORT).show();
-                String song_path = pathList.get(pos);
-                positionCur = pos;
-                file = new File(song_path);
+                String songName=listSongName.get(pos);
                 playAdapter.setmPosition(pos);
+                playViaName(songName);
 
-                mpControl.setPositionSongNow(pos);
-                mpControl.setPositionSongCount(playAdapter.getItemCount());
+
+//                String song_path = pathList.get(pos);
+//                positionCur = pos;
+//                file = new File(song_path);
+//                playAdapter.setmPosition(pos);
+//
+//                mpControl.setPositionSongNow(pos);
+//                mpControl.setPositionSongCount(playAdapter.getItemCount());
 
                 playAdapter.notifyDataSetChanged();
-                play();
+                sendNotificationChangePlay(songName);
+//                play();
             }
 
             @Override
@@ -554,15 +646,15 @@ public class MainActivity extends AppCompatActivity {
                 }
                 TTimer.setText(timerAct);
 
-                songTimeNow.setText(showTimeNow);
+                TSongTimeNow.setText(showTimeNow);
 //                if (!mp.isPlaying() && ifPlay) {
 
                 if (Objects.equals(showTimeNow, showTimeAll)) {
                     if (!ifCycle) {
-                        Toast.makeText(MainActivity.this, "下一曲", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(MainActivity.this, "下一曲", Toast.LENGTH_SHORT).show();
                         NextSong();
                     } else {
-                        Toast.makeText(MainActivity.this, "单曲循环", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(MainActivity.this, "单曲循环", Toast.LENGTH_SHORT).show();
                         playAdapter.setSearchPosition(playAdapter.getSearchPosition());
                     }
                 }
@@ -601,15 +693,15 @@ public class MainActivity extends AppCompatActivity {
                 }
                 mainA.TTimer.setText(timerAct);
 //                System.out.println("timerAct = "+timerAct);
-                mainA.songTimeNow.setText(mainA.showTimeNow);
+                mainA.TSongTimeNow.setText(mainA.showTimeNow);
 //                if (!mp.isPlaying() && ifPlay) {
 
                 if (Objects.equals(mainA.showTimeNow, mainA.showTimeAll)) {
                     if (!ifCycle) {
-                        Toast.makeText(mainA.getApplicationContext(), "下一曲", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(mainA.getApplicationContext(), "下一曲", Toast.LENGTH_SHORT).show();
                         mainA.NextSong();
                     } else {
-                        Toast.makeText(mainA.getApplicationContext(), "单曲循环", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(mainA.getApplicationContext(), "单曲循环", Toast.LENGTH_SHORT).show();
                         mainA.playAdapter.setSearchPosition(mainA.playAdapter.getSearchPosition());
                     }
                 }
@@ -629,7 +721,7 @@ public class MainActivity extends AppCompatActivity {
                 if (singleFile.isDirectory() && !singleFile.isHidden()) {
                     arrayList.addAll(findSong(singleFile));
                 } else {
-                    if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".wav")) {
+                    if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".flac")|| singleFile.getName().endsWith(".wav")) {
                         arrayList.add(singleFile);
                     }
                 }
@@ -639,9 +731,60 @@ public class MainActivity extends AppCompatActivity {
         return arrayList;
     }
 
+    public ArrayList<File> findSongType(File file) {
+        ArrayList<File> arrayList = new ArrayList<>();
+        File[] files = file.listFiles();
+        if (files != null) {
+            for (File singleFile : files) {
+                if (singleFile.isDirectory() && !singleFile.isHidden()) {
+                    arrayList.addAll(findSongType(singleFile));
+                } else {
+                    switch (songType){
+                        case 0:
+                            if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".flac")|| singleFile.getName().endsWith(".wav")|| singleFile.getName().endsWith(".m4a")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 1:
+                            if (singleFile.getName().endsWith(".mp3")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 2:
+                            if (singleFile.getName().endsWith(".wav")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 3:
+                            if (singleFile.getName().endsWith(".flac")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 4:
+                            if (singleFile.getName().endsWith(".m4a")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                        case 5:
+                            if (singleFile.getName().endsWith(".mp4")) {
+                                arrayList.add(singleFile);
+                            }
+                            break;
+                    }
+//                    if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".flac")|| singleFile.getName().endsWith(".wav")) {
+//                        arrayList.add(singleFile);
+//                    }
+                }
+            }
+        }
+
+        return arrayList;
+    }
+
     public void displaySongs() {
         ContentValues values = new ContentValues();//临时变量
-        final ArrayList<File> songs = findSong(Environment.getExternalStorageDirectory());
+//        final ArrayList<File> songs = findSong(Environment.getExternalStorageDirectory());
+        final ArrayList<File> songs = findSongType(Environment.getExternalStorageDirectory());
         String[] items = new String[songs.size()];
 
 //        String patternName = "[^\\/\\\\]+$";
@@ -680,11 +823,11 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage("剩余时间视文件夹数量而定\n扫描完毕会自动关闭本窗口\n也可手动关闭\n请稍等...")//设置对话框的内容
                 //设置对话框的按钮
                 .setNegativeButton("明白啦", (dialog, which) -> {
-                    Toast.makeText(MainActivity.this, "明白就很棒哟", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(MainActivity.this, "明白就很棒哟", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 })
                 .setPositiveButton("好的啦", (dialog, which) -> {
-                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 }).create();
         dialog.show();
@@ -698,7 +841,7 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage("是否从列表中移除该歌曲\n（并不会删除本地歌曲）\n（重新扫描歌曲即可恢复）\n歌曲路径：" + wantDeletePath)//设置对话框的内容
                 //设置对话框的按钮
                 .setNegativeButton("手滑误触", (dialog, which) -> {
-                    Toast.makeText(MainActivity.this, "那我走？", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(MainActivity.this, "那我走？", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 })
                 .setPositiveButton("确定移除", (dialog, which) -> {
@@ -712,22 +855,69 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void MyOnlineAlertDialog() {
+    public void MyOnlineMusicAlertDialog() {
         dialog = new AlertDialog.Builder(this)
 //                .setIcon(R.mipmap.icon)//设置标题的图片
-                .setTitle("跳转网络寻歌")//设置对话框的标题
-                .setMessage("可在跳转的网站下载喜欢的歌曲(选择mp3格式，注意歌曲命名)\n然后使用本软件的扫描歌曲功能以入库本地列表\n接下来享受音乐的旅程吧")//设置对话框的内容
+                .setTitle("是否跳转浏览器进行网络寻歌")//设置对话框的标题
+                .setMessage("可在跳转的网站下载喜欢的歌曲(可选择mp3/wav/flac/m4a格式，注意歌曲命名)\n然后使用本软件的扫描歌曲功能以入库本地列表\n接下来享受音乐的旅程吧\n(不可相信广告)")//设置对话框的内容
                 //设置对话框的按钮
-                .setNegativeButton("明白啦", (dialog, which) -> {
-                    Toast.makeText(MainActivity.this, "明白就很棒哟", Toast.LENGTH_SHORT).show();
+                .setNegativeButton("手滑取消", (dialog, which) -> {
+//                    Toast.makeText(MainActivity.this, "返回", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 })
-                .setPositiveButton("好的啦", (dialog, which) -> {
-                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
+                .setPositiveButton("立即前往", (dialog, which) -> {
+                    Uri uri = Uri.parse("https://tools.liumingye.cn/music/#/");
+                    Intent intent = new Intent();
+                    intent.setAction("android.intent.action.VIEW");
+                    intent.setData(uri);
+                    startActivity(intent);
+                    Toast.makeText(MainActivity.this, "向前进！", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 }).create();
         dialog.show();
 
+    }
+    public void MyOnlineVideoAlertDialog() {
+        dialog = new AlertDialog.Builder(this)
+//                .setIcon(R.mipmap.icon)//设置标题的图片
+                .setTitle("是否跳转浏览器进行视频观看")//设置对话框的标题
+                .setMessage("本软件将跳转去一个比较好用的视频网站\n可以在里面搜索想要看的视频\n免责申明：(不要相信里面的广告！！！)\n(不要乱点广告链接！！！)")//设置对话框的内容
+                //设置对话框的按钮
+                .setNegativeButton("手滑取消", (dialog, which) -> {
+//                    Toast.makeText(MainActivity.this, "返回", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                })
+                .setPositiveButton("立即前往", (dialog, which) -> {
+                    Uri uri = Uri.parse("https://cupfox.app/");
+                    Intent intent = new Intent();
+                    intent.setAction("android.intent.action.VIEW");
+                    intent.setData(uri);
+                    startActivity(intent);
+                    Toast.makeText(MainActivity.this, "观影模式", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                }).create();
+        dialog.show();
+    }
+    public void MyOnlinePictureAlertDialog() {
+        dialog = new AlertDialog.Builder(this)
+//                .setIcon(R.mipmap.icon)//设置标题的图片
+                .setTitle("是否跳转浏览器进行在线寻图")//设置对话框的标题
+                .setMessage("本软件将跳转去一个比较高质量的图片壁纸网站\n可以在里面保存想要的图片)")//设置对话框的内容
+                //设置对话框的按钮
+                .setNegativeButton("手滑取消", (dialog, which) -> {
+//                    Toast.makeText(MainActivity.this, "返回", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                })
+                .setPositiveButton("立即前往", (dialog, which) -> {
+                    Uri uri = Uri.parse("https://wallspic.com/");
+                    Intent intent = new Intent();
+                    intent.setAction("android.intent.action.VIEW");
+                    intent.setData(uri);
+                    startActivity(intent);
+                    Toast.makeText(MainActivity.this, "看图模式", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                }).create();
+        dialog.show();
     }
 
     public void SkinEnable(int pos) {
@@ -818,8 +1008,10 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog dialog = new AlertDialog.Builder(this)
 //                .setIcon(R.mipmap.icon)//设置标题的图片
                 .setTitle("预置皮肤列表")//设置对话框的标题
-                .setSingleChoiceItems(items, 1, (dialog1, which) -> {
+                .setSingleChoiceItems(items, skinPos, (dialog1, which) -> {
+                    skinPos=which;
                     SkinEnable(which);
+                    dialog1.dismiss();
                     Toast.makeText(MainActivity.this, items[which], Toast.LENGTH_SHORT).show();
                 })
                 .setPositiveButton("确定", new DialogInterface.OnClickListener() {
@@ -846,6 +1038,7 @@ public class MainActivity extends AppCompatActivity {
             // or other notification behaviors after this
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
+
         }
     }
 
@@ -1012,24 +1205,33 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent("ysPlay");
         sendBroadcast(intent);
     }
+    private void initReceiver(){
+        myReceiverIn = new MyReceiverIn();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(PLAY_PAUSE_SONG_MAIN);
+        intentFilter.addAction(PRE_SONG_MAIN);
+        intentFilter.addAction(NEXT_SONG_MAIN);
+        intentFilter.addAction(CLOSE_SONG_MAIN);
+        registerReceiver(myReceiverIn, intentFilter);
+    }
 
     @Override
     protected void onStart() {
         super.onStart();
 
-        myReceiverIn = new MyReceiverIn();
 
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(PLAY_PAUSE_SONG);
-        intentFilter.addAction(PRE_SONG);
-        intentFilter.addAction(NEXT_SONG);
-        registerReceiver(myReceiverIn, intentFilter);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
 //        unregisterReceiver(myReceiver);
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
         unregisterReceiver(myReceiverIn);
     }
 
@@ -1045,7 +1247,6 @@ public class MainActivity extends AppCompatActivity {
 //        remoteViews.setImageViewResource(R.id.icon, R.drawable.ic_launcher);//设置图片样式
 //        remoteViews.setOnClickPendingIntent(R.id.NBtnNext, pendingIntent);//点击跳转事件
 //
-
         //为prev控件注册事件
         remoteViews.setOnClickPendingIntent(R.id.NBtnPre, prevPendingIntent);
         remoteViews.setOnClickPendingIntent(R.id.NBtnPlayPause, prevPendingIntent);
@@ -1057,20 +1258,90 @@ public class MainActivity extends AppCompatActivity {
 
     public class MyReceiverIn extends BroadcastReceiver {
 
+        @SuppressLint("NotifyDataSetChanged")
         @Override
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
-                case PLAY_PAUSE_SONG:
-                    Log.e("Activity", PLAY_PAUSE_SONG);
-                    playOrPause();
+                case PLAY_PAUSE_SONG_MAIN:
+                    Log.e("Activity", PLAY_PAUSE_SONG_MAIN);
+//                    playOrPause();
+
+                    if (mpControl.songIsPlaying()){
+                        TvSongNow.setText("正在播放：");
+                        BtnPlayPause.setBackgroundResource(R.drawable.pause);
+                        animator.resume();
+                    }else {
+                        TvSongNow.setText("暂停播放：");
+                        BtnPlayPause.setBackgroundResource(R.drawable.playsong);
+                        animator.pause();
+                    }
+
+                    TvSongName.setText(mpControl.getPositionSongNameNow());
                     break;
-                case PRE_SONG:
-                    Log.e("Activity", PRE_SONG);
-                    PreSong();
+                case PRE_SONG_MAIN:
+                    Log.e("Activity", PRE_SONG_MAIN);
+
+                    musicTimeAll = mpControl.songGetTimeAll();
+                    showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
+//                    SeekB.setProgress(0);
+                    SeekB.setMax(musicTimeAll);
+                    TSongTimeAll.setText(showTimeAll);
+
+
+                    playAdapter.setmPosition(mpControl.getPositionSongNow());
+                    playAdapter.notifyDataSetChanged();
+
+                    TvSongNow.setText("正在播放：");
+                    TvSongName.setText(mpControl.getPositionSongNameNow());
+                    BtnPlayPause.setBackgroundResource(R.drawable.pause);
+                    animator.start();
+//                    PreSong();
                     break;
-                case NEXT_SONG:
-                    Log.e("Activity", NEXT_SONG);
-                    NextSong();
+                case NEXT_SONG_MAIN:
+                    Log.e("Activity", NEXT_SONG_MAIN);
+//                    int countSong = mpControl.getPositionSongCount();
+////        int nowCur = positionCur;
+//                    int nowCur = mpControl.getPositionSongNow();
+//                    String songName="";
+//                    System.out.println("activity countSong = " + countSong);
+//                    System.out.println("activity nowCur = " + nowCur);
+////             System.out.println("dBGetPath(nowCur) = " + dBGetPath(nowCur));
+////                Drawable drawable=getResources().getDrawable(R.drawable.select_color);
+//
+//                    if (nowCur < countSong-1) {
+//                        nowCur++;
+//                        songName=mpControl.dBGetName(nowCur);
+//                        playAdapter.setmPosition(nowCur);
+//                        playAdapter.notifyDataSetChanged();
+//
+//
+//                    } else if (nowCur == countSong-1) {
+//                        nowCur = 0;
+//                        songName=mpControl.dBGetName(nowCur);
+//                        playAdapter.setmPosition(nowCur);
+//                        playAdapter.notifyDataSetChanged();
+//                    }
+                    musicTimeAll = mpControl.songGetTimeAll();
+                    showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
+//                    SeekB.setProgress(0);
+                    SeekB.setMax(musicTimeAll);
+                    TSongTimeAll.setText(showTimeAll);
+
+                    playAdapter.setmPosition(mpControl.getPositionSongNow());
+                    playAdapter.notifyDataSetChanged();
+                    TvSongNow.setText("正在播放：");
+                    TvSongName.setText(mpControl.getPositionSongNameNow());
+                    BtnPlayPause.setBackgroundResource(R.drawable.pause);
+                    animator.start();
+//                    NextSong();
+                    break;
+                case CLOSE_SONG_MAIN:
+                    Log.e("Activity", CLOSE_SONG_MAIN);
+                    NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                    notificationManager.cancelAll();
+
+//                    finish();
+                    System.exit(0);
                     break;
             }
 

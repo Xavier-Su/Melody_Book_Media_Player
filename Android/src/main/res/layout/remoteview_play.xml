@@ -26,6 +26,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="曲名"
+            android:textSize="12sp"
+            android:textColor="#696969"
             android:layout_weight="2"
             />
         <Button

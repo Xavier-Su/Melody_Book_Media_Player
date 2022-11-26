@@ -6,7 +6,8 @@
     <string name="search">搜索</string>
     <string name="find_all">扫描歌曲</string>
     <string name="song_name">曲名</string>
-    <string name="stop">停止</string>
+    <string name="stop">在线影视</string>
+    <string name="Picture">在线寻图</string>
     <string name="previous">上一首</string>
     <string name="next">下一首</string>
     <string name="quit">在线寻歌</string>
