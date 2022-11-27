@@ -90,12 +90,24 @@
 
         </LinearLayout>
 
+
+
         <ImageView
             android:layout_width="0dp"
             android:layout_height="90dp"
             android:layout_weight="1"
 
             />
+        <Button
+            android:id="@+id/NBtnClose"
+            android:layout_gravity="bottom"
+            android:background="@drawable/close"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_margin="0dp"
+            android:textSize="15sp"
+            android:layout_weight="0"
+            android:textColor="#696969" />
 
 
 

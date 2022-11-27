@@ -341,11 +341,7 @@ public class MyService extends Service {
 //                        Log.e("myHandler", "NextSong");
                         mpControl.NextSong();
                     } else {
-<<<<<<< HEAD
 //                        Toast.makeText(getApplicationContext(), "单曲循环", Toast.LENGTH_SHORT).show();
-=======
-                        Toast.makeText(getApplicationContext(), "单曲循环", Toast.LENGTH_SHORT).show();
->>>>>>> main
 //                        mpControl.songPlay(mpControl.dBGetPath(positionSongNow));
                         mpControl.songCycle();
 
@@ -448,6 +444,13 @@ public class MyService extends Service {
 //        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
         notificationLayoutExpanded.setOnClickPendingIntent(R.id.NImage, playPausePendingIntent);
 
+
+        //关闭按钮
+        Intent intentClose = new Intent(CLOSE_SONG_MAIN);
+        PendingIntent closePendingIntent = PendingIntent.getBroadcast(this, 0, intentClose, PendingIntent.FLAG_IMMUTABLE);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnClose, closePendingIntent);
+
+
             notificationLayout.setTextViewText(R.id.NTvSongNow, "播放："+nSongName);
             notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, "播放："+nSongName);
             notificationLayout.setImageViewResource(R.id.NImage, R.drawable.pause);
@@ -502,6 +505,12 @@ public class MyService extends Service {
         notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
 //        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPlayPause, playPausePendingIntent);
         notificationLayoutExpanded.setOnClickPendingIntent(R.id.NImage, playPausePendingIntent);
+
+        //关闭按钮
+        Intent intentClose = new Intent(CLOSE_SONG_MAIN);
+        PendingIntent closePendingIntent = PendingIntent.getBroadcast(this, 0, intentClose, PendingIntent.FLAG_IMMUTABLE);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnClose, closePendingIntent);
+
 
 //        if (mp.isPlaying()) {
             notificationLayout.setTextViewText(R.id.NTvSongNow, "暂停："+nSongName);

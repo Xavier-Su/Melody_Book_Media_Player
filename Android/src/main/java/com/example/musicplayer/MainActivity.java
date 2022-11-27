@@ -319,11 +319,7 @@ public class MainActivity extends AppCompatActivity {
                             Toast.makeText(MainActivity.this, items[which], Toast.LENGTH_SHORT).show();
                         })
                         .setNegativeButton("手滑误触", (dialog2, which) -> {
-<<<<<<< HEAD
 //                            Toast.makeText(MainActivity.this, "那我走？", Toast.LENGTH_SHORT).show();
-=======
-                            Toast.makeText(MainActivity.this, "那我走？", Toast.LENGTH_SHORT).show();
->>>>>>> main
                             dialog2.dismiss();
                         })
                         .setPositiveButton("确定", new DialogInterface.OnClickListener() {
@@ -555,13 +551,8 @@ public class MainActivity extends AppCompatActivity {
                 String songName=listSongName.get(pos);
                 playAdapter.setmPosition(pos);
                 playViaName(songName);
-<<<<<<< HEAD
 
 
-=======
-
-
->>>>>>> main
 //                String song_path = pathList.get(pos);
 //                positionCur = pos;
 //                file = new File(song_path);
@@ -880,11 +871,7 @@ public class MainActivity extends AppCompatActivity {
                     intent.setAction("android.intent.action.VIEW");
                     intent.setData(uri);
                     startActivity(intent);
-<<<<<<< HEAD
                     Toast.makeText(MainActivity.this, "向前进！", Toast.LENGTH_SHORT).show();
-=======
-                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
->>>>>>> main
                     dialog.dismiss();
                 }).create();
         dialog.show();
@@ -906,11 +893,7 @@ public class MainActivity extends AppCompatActivity {
                     intent.setAction("android.intent.action.VIEW");
                     intent.setData(uri);
                     startActivity(intent);
-<<<<<<< HEAD
                     Toast.makeText(MainActivity.this, "观影模式", Toast.LENGTH_SHORT).show();
-=======
-                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
->>>>>>> main
                     dialog.dismiss();
                 }).create();
         dialog.show();
@@ -931,11 +914,7 @@ public class MainActivity extends AppCompatActivity {
                     intent.setAction("android.intent.action.VIEW");
                     intent.setData(uri);
                     startActivity(intent);
-<<<<<<< HEAD
                     Toast.makeText(MainActivity.this, "看图模式", Toast.LENGTH_SHORT).show();
-=======
-                    Toast.makeText(MainActivity.this, "OK的啦", Toast.LENGTH_SHORT).show();
->>>>>>> main
                     dialog.dismiss();
                 }).create();
         dialog.show();
@@ -1111,6 +1090,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intentNext = new Intent(NEXT_SONG);
         Intent intentPlayPause = new Intent(PLAY_PAUSE_SONG);
 
+
         PendingIntent prePendingIntent = PendingIntent.getBroadcast(this, 0, intentPre, PendingIntent.FLAG_IMMUTABLE);
         PendingIntent nextPendingIntent = PendingIntent.getBroadcast(this, 0, intentNext, PendingIntent.FLAG_IMMUTABLE);
         PendingIntent playPausePendingIntent = PendingIntent.getBroadcast(this, 0, intentPlayPause, PendingIntent.FLAG_IMMUTABLE);
@@ -1131,6 +1111,11 @@ public class MainActivity extends AppCompatActivity {
         notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnPre, prePendingIntent);
         notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnNext, nextPendingIntent);
         notificationLayoutExpanded.setOnClickPendingIntent(R.id.NImage, playPausePendingIntent);
+
+        //关闭按钮
+        Intent intentClose = new Intent(CLOSE_SONG_MAIN);
+        PendingIntent closePendingIntent = PendingIntent.getBroadcast(this, 0, intentClose, PendingIntent.FLAG_IMMUTABLE);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.NBtnClose, closePendingIntent);
 
         notificationLayout.setTextViewText(R.id.NTvSongNow, "播放：" + nSongName);
         notificationLayoutExpanded.setTextViewText(R.id.NTvSongNow, "播放：" + nSongName);
@@ -1298,7 +1283,6 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     TvSongName.setText(mpControl.getPositionSongNameNow());
-<<<<<<< HEAD
                     break;
                 case PRE_SONG_MAIN:
                     Log.e("Activity", PRE_SONG_MAIN);
@@ -1319,28 +1303,6 @@ public class MainActivity extends AppCompatActivity {
                     animator.start();
 //                    PreSong();
                     break;
-=======
-                    break;
-                case PRE_SONG_MAIN:
-                    Log.e("Activity", PRE_SONG_MAIN);
-
-                    musicTimeAll = mpControl.songGetTimeAll();
-                    showTimeAll = musicTimeAll / 1000 / 60 + ":" + musicTimeAll / 1000 % 60;
-//                    SeekB.setProgress(0);
-                    SeekB.setMax(musicTimeAll);
-                    TSongTimeAll.setText(showTimeAll);
-
-
-                    playAdapter.setmPosition(mpControl.getPositionSongNow());
-                    playAdapter.notifyDataSetChanged();
-
-                    TvSongNow.setText("正在播放：");
-                    TvSongName.setText(mpControl.getPositionSongNameNow());
-                    BtnPlayPause.setBackgroundResource(R.drawable.pause);
-                    animator.start();
-//                    PreSong();
-                    break;
->>>>>>> main
                 case NEXT_SONG_MAIN:
                     Log.e("Activity", NEXT_SONG_MAIN);
 //                    int countSong = mpControl.getPositionSongCount();
