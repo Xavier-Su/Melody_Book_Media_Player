@@ -1,5 +1,5 @@
-# Xiaofeng_Media_Player
-### Xiaofeng_Media_Player  
+# Melody_Book_Media_Player(Xiaofeng_Media_Player)
+### Melody Book Media Player  
 ### 自制的一款筱风音乐播放器——音书（其实是个媒体播放器，也可以放视频，安卓的只听歌）。  
 ### 桌面版（Release文件夹中，源码在code中）基于QT4.8.5版本开发，制作了Arm、X86架构（Linux，Windows 10）的版本。  
 #### 桌面版现在还是本地播放器，后面也许会加入网络搜索功能（也许，嗯，我想的是这样的）。 
