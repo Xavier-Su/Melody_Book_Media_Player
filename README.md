@@ -1,9 +1,12 @@
 # Xiaofeng_Media_Player
 ### Xiaofeng_Media_Player  
 ### 自制的一款筱风音乐播放器——音书（其实是个媒体播放器，也可以放视频，安卓的只听歌）。  
-### 桌面版基于QT4.8.5版本开发，制作了Arm、X86架构（Linux，Windows 10）的版本。  
+### 桌面版（Release文件夹中，源码在code中）基于QT4.8.5版本开发，制作了Arm、X86架构（Linux，Windows 10）的版本。  
 #### 桌面版现在还是本地播放器，后面也许会加入网络搜索功能（也许，嗯，我想的是这样的）。 
-### 安卓版也发布了，基于安卓13，SDK32版本开发。  
+#### 播放预览图
+![image](https://github.com/Xavier-Su/Xiaofeng_Media_Player/blob/main/Release/img/menu1.png)
+![image](https://github.com/Xavier-Su/Xiaofeng_Media_Player/blob/main/Release/img/menu2.png)
+### 安卓版（Android文件夹中）也发布了，基于安卓13，SDK32版本开发。  
 #### 安卓版拥有本地播放，数据库列表，网络寻歌跳转，更换皮肤等功能。
 ## 安卓版发行版内容：  
 > 1.首次启动随机壁纸，不满意可以点击“变身”按钮切换皮肤，目前内含21款皮肤。  
