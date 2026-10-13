@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">音书</string>
+    <string name="notification_channel_name">音乐播放</string>
+</resources>

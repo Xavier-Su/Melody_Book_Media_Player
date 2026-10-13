@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 音书：一本翻开的书 + 音符 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="27"
+        android:translateY="27">
+        <!-- 书页 -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M4,12 C12,9 20,9 27,13 L27,46 C20,42 12,42 4,45 Z" />
+        <path
+            android:fillColor="#E6FFFFFF"
+            android:pathData="M50,12 C42,9 34,9 27,13 L27,46 C34,42 42,42 50,45 Z" />
+        <!-- 音符 -->
+        <path
+            android:fillColor="#FF00A88A"
+            android:pathData="M33,18 L43,15.5 L43,33 A4,4 0,1 1,40 29.2 L40,21 L36,22 L36,36 A4,4 0,1 1,33 32.2 Z" />
+    </group>
+</vector>
