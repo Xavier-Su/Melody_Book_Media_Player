@@ -44,10 +44,8 @@ fun MiniPlayer(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = spacing.sm, vertical = spacing.xs),
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
     ) {
         Column {
             Row(
@@ -92,7 +90,7 @@ fun MiniPlayer(
                     .fillMaxWidth()
                     .padding(horizontal = spacing.lg)
                     .padding(bottom = spacing.xs)
-                    .height(2.dp),
+                    .height(sizes.miniProgress),
                 drawStopIndicator = {},
                 gapSize = 0.dp,
             )

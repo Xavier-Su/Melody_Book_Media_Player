@@ -1,7 +1,6 @@
 package com.melodybook.player.ui.nowplaying
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -35,11 +34,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.melodybook.player.data.lyrics.LrcParser
 import com.melodybook.player.data.lyrics.LyricLine
 import com.melodybook.player.data.lyrics.Lyrics
@@ -84,7 +81,7 @@ private fun NoLyrics(onPickLyricsFolder: () -> Unit) {
             Icons.AutoMirrored.Rounded.Notes,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(MelodyTokens.sizes.touchTarget),
         )
         Spacer(Modifier.height(spacing.md))
         Text("这首歌没有歌词", style = MaterialTheme.typography.titleMedium)
@@ -147,7 +144,7 @@ private fun SyncedLyrics(lines: List<LyricLine>, position: State<Long>, onSeek: 
 
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(top = half - 40.dp, bottom = half),
+            contentPadding = PaddingValues(top = half - MelodyTokens.sizes.touchTarget, bottom = half),
             verticalArrangement = Arrangement.spacedBy(spacing.md),
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -165,17 +162,12 @@ private fun LyricRow(line: LyricLine, isActive: Boolean, onClick: () -> Unit) {
         if (isActive) scheme.primary else scheme.onSurface.copy(alpha = 0.55f),
         label = "lyricColor",
     )
-    val scale by animateFloatAsState(if (isActive) 1.08f else 1f, label = "lyricScale")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClickLabel = "从这句开始播放", onClick = onClick)
-            .padding(horizontal = MelodyTokens.spacing.xl, vertical = MelodyTokens.spacing.xs)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
+            .padding(horizontal = MelodyTokens.spacing.xl, vertical = MelodyTokens.spacing.xs),
     ) {
         Text(
             line.text.ifEmpty { "♪" },

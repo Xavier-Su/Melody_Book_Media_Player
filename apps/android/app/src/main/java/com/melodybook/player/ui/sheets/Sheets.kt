@@ -46,9 +46,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 import android.net.Uri
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -377,10 +376,11 @@ private fun StrengthSlider(value: Float, onChange: (Float) -> Unit) {
 @Composable
 private fun PresetThumb(preset: PresetBackgrounds.Preset, selected: Boolean, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val sizes = MelodyTokens.sizes
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(64.dp)
+            .width(sizes.presetThumbWidth)
             .clickable(role = Role.RadioButton, onClickLabel = "使用背景 ${preset.name}", onClick = onClick),
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -389,25 +389,33 @@ private fun PresetThumb(preset: PresetBackgrounds.Preset, selected: Boolean, onC
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(width = 64.dp, height = 96.dp)
+                    .size(width = sizes.presetThumbWidth, height = sizes.presetThumbHeight)
                     .clip(MaterialTheme.shapes.small)
                     .border(
-                        BorderStroke(if (selected) 3.dp else 1.dp, if (selected) scheme.primary else scheme.outlineVariant),
+                        BorderStroke(
+                            if (selected) sizes.strokeThick else sizes.strokeThin,
+                            if (selected) scheme.primary else scheme.outlineVariant,
+                        ),
                         MaterialTheme.shapes.small,
                     ),
             )
             if (selected) {
                 Box(
                     Modifier
-                        .size(28.dp)
+                        .size(sizes.icon)
                         .background(scheme.primary, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Rounded.Check, contentDescription = "已选择", tint = scheme.onPrimary, modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.Rounded.Check,
+                        contentDescription = "已选择",
+                        tint = scheme.onPrimary,
+                        modifier = Modifier.size(sizes.iconSm),
+                    )
                 }
             }
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(MelodyTokens.spacing.xs))
         Text(preset.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }
@@ -418,7 +426,7 @@ private fun SkinSwatch(skin: Skin, selected: Boolean, onClick: () -> Unit) {
     Swatch(
         label = skin.name,
         selected = selected,
-        brush = Brush.linearGradient(listOf(scheme.primary, scheme.tertiary)),
+        color = scheme.primary,
         onClick = onClick,
     )
 }
@@ -429,7 +437,7 @@ private fun DynamicSwatch(selected: Boolean, onClick: () -> Unit) {
     Swatch(
         label = "随壁纸",
         selected = selected,
-        brush = Brush.sweepGradient(listOf(s.primary, s.tertiary, s.secondary, s.primary)),
+        color = s.secondaryContainer,
         onClick = onClick,
         icon = true,
     )
@@ -439,34 +447,40 @@ private fun DynamicSwatch(selected: Boolean, onClick: () -> Unit) {
 private fun Swatch(
     label: String,
     selected: Boolean,
-    brush: Brush,
+    color: Color,
     onClick: () -> Unit,
     icon: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val sizes = MelodyTokens.sizes
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(56.dp)
+            .width(sizes.touchTarget + MelodyTokens.spacing.sm)
             .clickable(role = Role.RadioButton, onClickLabel = "使用皮肤 $label", onClick = onClick),
     ) {
+        // 选中态用外圈描边表示，色块本身是纯色
         Box(
             Modifier
-                .size(48.dp)
+                .size(sizes.touchTarget)
                 .border(
-                    BorderStroke(if (selected) 3.dp else 1.dp, if (selected) scheme.onSurface else scheme.outlineVariant),
+                    BorderStroke(
+                        if (selected) sizes.strokeThick else sizes.strokeThin,
+                        if (selected) scheme.onSurface else scheme.outlineVariant,
+                    ),
                     CircleShape,
                 )
-                .padding(4.dp)
-                .background(brush, CircleShape),
+                .padding(MelodyTokens.spacing.xs)
+                .background(color, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
+            val onColor = if (icon) scheme.onSecondaryContainer else scheme.onPrimary
             when {
-                selected -> Icon(Icons.Rounded.Check, contentDescription = "已选择", tint = scheme.surface)
-                icon -> Icon(Icons.Rounded.Palette, contentDescription = null, tint = scheme.surface)
+                selected -> Icon(Icons.Rounded.Check, contentDescription = "已选择", tint = onColor)
+                icon -> Icon(Icons.Rounded.Palette, contentDescription = null, tint = onColor)
             }
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(MelodyTokens.spacing.xs))
         Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }

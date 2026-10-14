@@ -16,18 +16,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.melodybook.player.ui.components.Artwork
+import com.melodybook.player.ui.theme.MelodyTokens
 
 /**
  * 旋转唱片：保留旧版旋转 CD 的个性，但改为“唱片 + 中间封面”。
+ * 唱片本体只有一个深色圆盘和一圈细边，没有阴影、纹路和高光。
  *
  * 旧版用 ObjectAnimator，暂停后 resume 偶尔会跳角度；
  * 这里用 Animatable 从当前角度继续转，暂停时停在原位，恢复时无缝衔接。
@@ -56,33 +53,18 @@ fun SpinningDisc(
     }
 
     val scheme = MaterialTheme.colorScheme
+    val stroke = MelodyTokens.sizes.strokeThin
     Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .shadow(24.dp, CircleShape, clip = false)
             .graphicsLayer { rotationZ = rotation.value },
         contentAlignment = Alignment.Center,
     ) {
-        // 唱片本体：深色底 + 细纹路 + 一道高光
         Canvas(Modifier.fillMaxSize()) {
             val r = size.minDimension / 2
-            drawCircle(Color(0xFF16181A), r)
-            val groove = Color.White.copy(alpha = 0.05f)
-            var gr = r * 0.95f
-            while (gr > r * 0.66f) {
-                drawCircle(groove, gr, style = Stroke(width = 1.dp.toPx()))
-                gr -= 3.dp.toPx()
-            }
-            drawCircle(
-                brush = Brush.linearGradient(
-                    listOf(Color.Transparent, Color.White.copy(alpha = 0.10f), Color.Transparent),
-                    start = Offset(0f, 0f),
-                    end = Offset(size.width, size.height),
-                ),
-                radius = r,
-            )
-            drawCircle(scheme.primary.copy(alpha = 0.55f), r * 0.635f, style = Stroke(width = 2.dp.toPx()))
+            drawCircle(scheme.scrim.copy(alpha = 0.9f), r)
+            drawCircle(scheme.outline, r * 0.635f, style = Stroke(width = stroke.toPx()))
         }
         // 中间封面
         Artwork(

@@ -17,9 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.unit.dp
 import com.melodybook.player.data.Song
 import com.melodybook.player.data.SongSearch
+import com.melodybook.player.ui.theme.MelodyTokens
 
 /**
  * 右侧字母快速索引（按歌名排序时显示）。
@@ -47,8 +47,8 @@ fun AlphabetIndex(
 
     Column(
         modifier = modifier
-            .width(24.dp)
-            .padding(vertical = 8.dp)
+            .width(MelodyTokens.sizes.indexGutter)
+            .padding(vertical = MelodyTokens.spacing.sm)
             .onSizeChanged { heightPx = it.height.coerceAtLeast(1) }
             .pointerInput(firstIndex) { detectTapGestures { jumpAt(it.y) } }
             .pointerInput(firstIndex) {
@@ -63,7 +63,7 @@ fun AlphabetIndex(
                 letter.toString(),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(vertical = 1.dp),
+                modifier = Modifier.padding(vertical = MelodyTokens.sizes.strokeThin),
             )
         }
     }

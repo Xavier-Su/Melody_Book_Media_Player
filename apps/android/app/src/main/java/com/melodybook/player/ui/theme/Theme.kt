@@ -40,17 +40,35 @@ data class Sizes(
     val icon: Dp = 24.dp,
     val listArtwork: Dp = 48.dp,
     val miniPlayerArtwork: Dp = 44.dp,
-    val playButton: Dp = 72.dp,
+    val miniPlayerHeight: Dp = 84.dp,
+    val miniProgress: Dp = 2.dp,
+    val playButton: Dp = 64.dp,
+    val playIcon: Dp = 32.dp,
+    val controlButton: Dp = 56.dp,
+    val controlIcon: Dp = 32.dp,
+    val seekTrack: Dp = 4.dp,
+    val seekThumb: Dp = 12.dp,
+    val spectrumHeight: Dp = 40.dp,
+    val dotActive: Dp = 8.dp,
+    val dotInactive: Dp = 6.dp,
+    val discMax: Dp = 320.dp,
+    val backdropBlur: Dp = 60.dp,
+    val indexGutter: Dp = 24.dp,
+    val swatch: Dp = 40.dp,
+    val presetThumbWidth: Dp = 64.dp,
+    val presetThumbHeight: Dp = 96.dp,
+    val strokeThin: Dp = 1.dp,
+    val strokeThick: Dp = 2.dp,
 )
 
 val LocalSpacing = staticCompositionLocalOf { Spacing() }
 val LocalSizes = staticCompositionLocalOf { Sizes() }
 
 private val MelodyShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(20.dp),
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
     extraLarge = RoundedCornerShape(28.dp),
 )
 
