@@ -388,6 +388,8 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
             onWeather = vm::setWeatherEnabled,
             onCity = vm::setWeatherCity,
             onCard = vm::setCardEnabled,
+            onCardCategory = vm::setCardCategory,
+            onCardZodiac = vm::setCardZodiac,
             onDismiss = { sheet = Sheet.NONE },
         )
         Sheet.SLEEP -> SleepTimerSheet(
@@ -404,8 +406,6 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
         DrawCardDialog(
             state = c,
             onKind = vm::setCardKind,
-            onCategory = vm::setCardCategory,
-            onZodiac = vm::setCardZodiac,
             onRedraw = vm::drawCard,
             onShare = {
                 c.content?.let { content ->

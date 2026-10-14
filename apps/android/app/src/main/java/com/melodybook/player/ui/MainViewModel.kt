@@ -64,8 +64,6 @@ data class LibraryUiState(
 /** 抽卡弹层的状态。农历在本机算，打开时立刻有；美句和图片联网获取。 */
 data class CardUiState(
     val kind: CardKind = CardKind.QUOTE,
-    val category: QuoteCategory = QuoteCategory.ANY,
-    val zodiac: Zodiac = Zodiac.ARIES,
     val loading: Boolean = true,
     val content: CardContent? = null,
     val imageUrl: String? = null,
@@ -370,12 +368,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private var cardJob: Job? = null
 
     fun openCard() {
-        viewModelScope.launch {
-            // 星座记住上次选的，下次打开直接是它
-            val zodiac = Zodiac.fromCode(settingsRepo.current().cardZodiac)
-            _card.value = CardUiState(zodiac = zodiac, lunar = LunarInfo.of(LocalDate.now()))
-            drawCard()
-        }
+        _card.value = CardUiState(lunar = LunarInfo.of(LocalDate.now()))
+        drawCard()
     }
 
     fun closeCard() {
@@ -383,21 +377,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _card.value = null
     }
 
-    fun setCardCategory(category: QuoteCategory) {
-        _card.value = _card.value?.copy(category = category) ?: return
-        drawCard()
-    }
+    /** 美句分类和星座在设置里选，只存设置；抽卡时再读，不在弹层里保留第二份。 */
+    fun setCardCategory(category: QuoteCategory) = launchIo { settingsRepo.setCardCategory(category) }
 
     fun setCardKind(kind: CardKind) {
         _card.value = _card.value?.copy(kind = kind) ?: return
         drawCard()
     }
 
-    fun setCardZodiac(zodiac: Zodiac) {
-        _card.value = _card.value?.copy(zodiac = zodiac) ?: return
-        launchIo { settingsRepo.setCardZodiac(zodiac.code) }
-        drawCard()
-    }
+    fun setCardZodiac(zodiac: Zodiac) = launchIo { settingsRepo.setCardZodiac(zodiac.code) }
 
     /** 抽（或再抽）一张。正文联网获取，失败时给出可重试的提示；背景图由界面自己加载。 */
     fun drawCard() {
@@ -406,10 +394,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _card.value = cur.copy(loading = true, error = null)
         cardJob = viewModelScope.launch {
             try {
+                // 每次抽都读最新设置：在设置里改了分类或星座，下一次抽就生效
+                val s = settingsRepo.current()
                 val content = when (cur.kind) {
-                    CardKind.QUOTE -> cardRepo.quote(cur.category)
+                    CardKind.QUOTE -> cardRepo.quote(s.cardCategory)
                     CardKind.STICK -> cardRepo.stick()
-                    CardKind.HOROSCOPE -> cardRepo.horoscope(cur.zodiac)
+                    CardKind.HOROSCOPE -> cardRepo.horoscope(Zodiac.fromCode(s.cardZodiac))
                 }
                 _card.value = _card.value?.copy(loading = false, content = content, imageUrl = cardRepo.imageUrl())
             } catch (e: CancellationException) {

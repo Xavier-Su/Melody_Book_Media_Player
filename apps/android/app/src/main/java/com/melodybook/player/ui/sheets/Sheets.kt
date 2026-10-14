@@ -65,6 +65,8 @@ import com.melodybook.player.data.PresetBackgrounds
 import kotlin.math.roundToInt
 import com.melodybook.player.data.ScanFilter
 import com.melodybook.player.data.SongMetadata
+import com.melodybook.player.data.card.QuoteCategory
+import com.melodybook.player.data.card.Zodiac
 import com.melodybook.player.data.lyrics.LrclibItem
 import com.melodybook.player.ui.LyricsSearchState
 import androidx.compose.foundation.text.KeyboardActions
@@ -175,6 +177,7 @@ private fun minutesLabel(m: Int): String = when {
 
 // ------------------------------------------------------------------ 联网功能
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OnlineSheet(
     settings: AppSettings,
@@ -182,6 +185,8 @@ fun OnlineSheet(
     onWeather: (Boolean) -> Unit,
     onCity: (String) -> Unit,
     onCard: (Boolean) -> Unit,
+    onCardCategory: (QuoteCategory) -> Unit,
+    onCardZodiac: (Zodiac) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val spacing = MelodyTokens.spacing
@@ -208,6 +213,36 @@ fun OnlineSheet(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (settings.cardEnabled) {
+            Spacer(Modifier.height(spacing.md))
+            Text("美句类型", style = MaterialTheme.typography.labelLarge)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+                modifier = Modifier.padding(top = spacing.xs),
+            ) {
+                QuoteCategory.entries.forEach { c ->
+                    FilterChip(
+                        selected = settings.cardCategory == c,
+                        onClick = { onCardCategory(c) },
+                        label = { Text(c.label) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(spacing.md))
+            Text("我的星座", style = MaterialTheme.typography.labelLarge)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+                modifier = Modifier.padding(top = spacing.xs),
+            ) {
+                Zodiac.entries.forEach { z ->
+                    FilterChip(
+                        selected = settings.cardZodiac == z.code,
+                        onClick = { onCardZodiac(z) },
+                        label = { Text(z.label) },
+                    )
+                }
+            }
+        }
         SectionLabel("主页天气")
         SwitchRow("在主页显示天气和温度", settings.weatherEnabled, onWeather)
         Text(

@@ -14,6 +14,10 @@ enum class QuoteCategory(val label: String, val code: String?) {
     LITERATURE("文学", "d"),
 }
 
+/** Hitokoto 请求地址。分类为“随机”时不带 c 参数。 */
+fun hitokotoUrl(category: QuoteCategory): String =
+    "https://v1.hitokoto.cn/?encode=json&charset=utf-8" + (category.code?.let { "&c=$it" } ?: "")
+
 /** 抽什么：一句美句、一支灵签，还是今日星座运势。 */
 enum class CardKind(val label: String) { QUOTE("美句"), STICK("灵签"), HOROSCOPE("星座") }
 

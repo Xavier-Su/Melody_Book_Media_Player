@@ -17,8 +17,7 @@ import org.json.JSONObject
 class CardRepository {
 
     suspend fun quote(category: QuoteCategory): CardContent.Words = withContext(Dispatchers.IO) {
-        val url = "https://v1.hitokoto.cn/?encode=json&charset=utf-8" +
-            category.code?.let { "&c=$it" }.orEmpty()
+        val url = hitokotoUrl(category)
         retry {
             val body = Http.get(url) ?: throw IOException("empty response")
             try {

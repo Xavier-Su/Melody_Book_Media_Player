@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.core.doublePreferencesKey
+import com.melodybook.player.data.card.QuoteCategory
 import com.melodybook.player.data.weather.WeatherPlace
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -51,6 +52,8 @@ data class AppSettings(
     val cardEnabled: Boolean = false,
     /** 抽卡里上次选的星座（接口用的英文名）。 */
     val cardZodiac: String = "aries",
+    /** 抽到美句时用的 Hitokoto 分类。 */
+    val cardCategory: QuoteCategory = QuoteCategory.ANY,
 ) {
     /** 当前实际要显示的背景图（Coil 可直接加载的地址），null 表示不显示。 */
     val backgroundModel: String?
@@ -96,6 +99,7 @@ class SettingsRepository(context: Context) {
         val weather = booleanPreferencesKey("weather")
         val card = booleanPreferencesKey("card")
         val cardZodiac = stringPreferencesKey("card_zodiac")
+        val cardCategory = stringPreferencesKey("card_category")
         val weatherName = stringPreferencesKey("weather_name")
         val weatherLat = doublePreferencesKey("weather_lat")
         val weatherLon = doublePreferencesKey("weather_lon")
@@ -127,6 +131,7 @@ class SettingsRepository(context: Context) {
             weatherEnabled = p[Keys.weather] ?: false,
             cardEnabled = p[Keys.card] ?: false,
             cardZodiac = p[Keys.cardZodiac] ?: "aries",
+            cardCategory = enumOr(p[Keys.cardCategory], QuoteCategory.ANY),
             weatherPlace = run {
                 val name = p[Keys.weatherName]
                 val lat = p[Keys.weatherLat]
@@ -149,6 +154,7 @@ class SettingsRepository(context: Context) {
     suspend fun setWeatherEnabled(enabled: Boolean) = store.edit { it[Keys.weather] = enabled }
     suspend fun setCardEnabled(enabled: Boolean) = store.edit { it[Keys.card] = enabled }
     suspend fun setCardZodiac(code: String) = store.edit { it[Keys.cardZodiac] = code }
+    suspend fun setCardCategory(category: QuoteCategory) = store.edit { it[Keys.cardCategory] = category.name }
 
     suspend fun setWeatherPlace(place: WeatherPlace) = store.edit {
         it[Keys.weatherName] = place.name

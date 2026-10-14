@@ -4,8 +4,10 @@ import com.melodybook.player.data.card.CardContent
 import com.melodybook.player.data.card.CardText
 import com.melodybook.player.data.card.LunarInfo
 import com.melodybook.player.data.card.Quote
+import com.melodybook.player.data.card.QuoteCategory
 import com.melodybook.player.data.card.Zodiac
 import com.melodybook.player.data.card.cardShareText
+import com.melodybook.player.data.card.hitokotoUrl
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -59,6 +61,15 @@ class LunarInfoTest {
         assertEquals("★★★☆☆", CardText.stars(3))
         assertEquals("★★★★★", CardText.stars(9))
         assertEquals("☆☆☆☆☆", CardText.stars(-1))
+    }
+
+    @Test
+    fun hitokotoUrlCarriesTheChosenCategory() {
+        val urls = QuoteCategory.entries.map { hitokotoUrl(it) }
+        assertEquals(QuoteCategory.entries.size, urls.distinct().size)
+        assertTrue(!hitokotoUrl(QuoteCategory.ANY).contains("c="))
+        assertTrue(hitokotoUrl(QuoteCategory.POEM).endsWith("&c=i"))
+        assertTrue(hitokotoUrl(QuoteCategory.LITERATURE).endsWith("&c=d"))
     }
 
     @Test
