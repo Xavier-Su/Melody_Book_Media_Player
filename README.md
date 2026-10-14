@@ -1,12 +1,22 @@
 # Melody_Book_Media_Player(Xiaofeng_Media_Player)
 ### Melody Book Media Player  
 ### 自制的一款筱风音乐播放器——音书（其实是个媒体播放器，也可以放视频，安卓的只听歌）。  
-### 桌面版（Release文件夹中，源码在code中）基于QT4.8.5版本开发，制作了Arm、X86架构（Linux，Windows 10）的版本。  
+## 仓库结构
+
+- apps/android：安卓版 2.0（Kotlin + Compose，当前主线）
+- apps/desktop-qt：桌面版源码（Qt 4.8.5）
+- legacy/android-java：安卓旧版（Java，只读归档，另有 archive/android-java 分支备份）
+- docs/screenshots：预览图
+
+编译好的安装包不放在仓库里，请到 [Releases](https://github.com/Xavier-Su/Xiaofeng_Media_Player/releases) 下载。
+
+### 桌面版（源码在 apps/desktop-qt）基于QT4.8.5版本开发。
+#### 平台支持：源码可编译到 x86、Arm 架构的 Windows 和 Linux。目前只构建发布了 x86 Windows 版（Windows 10），其余平台尚未构建可执行文件。  
 #### 桌面版现在还是本地播放器，后面也许会加入网络搜索功能（也许，嗯，我想的是这样的）。 
 #### 播放预览图
-![image](https://github.com/Xavier-Su/Xiaofeng_Media_Player/blob/main/Release/img/menu1.png)
-![image](https://github.com/Xavier-Su/Xiaofeng_Media_Player/blob/main/Release/img/menu2.png)
-### 安卓版（Android文件夹中）也发布了，基于安卓13，SDK32版本开发。  
+![image](docs/screenshots/menu1.png)
+![image](docs/screenshots/menu2.png)
+### 安卓旧版（现位于 legacy/android-java）也发布了，基于安卓13，SDK32版本开发。新版见 apps/android。  
 #### 安卓版拥有本地播放，数据库列表，网络寻歌跳转，更换皮肤等功能。
 ## 安卓版发行版内容：  
 > 1.首次启动随机壁纸，不满意可以点击“变身”按钮切换皮肤，目前内含21款皮肤。  
