@@ -26,6 +26,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -34,10 +35,8 @@ import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -52,7 +51,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -62,7 +60,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.melodybook.player.data.SongMetadata
 import com.melodybook.player.playback.PlayerUiState
@@ -90,6 +87,8 @@ fun NowPlayingScreen(
     onOpenSleepTimer: () -> Unit,
     onNoLyrics: () -> Unit,
     onPickLyricsFolder: () -> Unit,
+    spectrumEnabled: Boolean,
+    onToggleSpectrum: () -> Unit,
 ) {
     val spacing = MelodyTokens.spacing
     val sizes = MelodyTokens.sizes
@@ -148,7 +147,13 @@ fun NowPlayingScreen(
                     current = pager.currentPage,
                     modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.size(sizes.touchTarget))
+                IconButton(onClick = onToggleSpectrum) {
+                    Icon(
+                        Icons.Rounded.GraphicEq,
+                        contentDescription = if (spectrumEnabled) "关闭频谱" else "开启频谱",
+                        tint = if (spectrumEnabled) scheme.primary else scheme.onSurfaceVariant,
+                    )
+                }
             }
 
             HorizontalPager(
@@ -195,7 +200,12 @@ fun NowPlayingScreen(
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                Spacer(Modifier.height(spacing.lg))
+                if (spectrumEnabled) {
+                    Spacer(Modifier.height(spacing.md))
+                    SpectrumView(isPlaying = state.isPlaying)
+                }
+
+                Spacer(Modifier.height(spacing.sm))
                 SeekBar(state.durationMs, position, onSeek)
 
                 Spacer(Modifier.height(spacing.md))
@@ -220,10 +230,9 @@ fun NowPlayingScreen(
     }
 }
 
-/** 背景：封面高斯模糊（Android 12+）+ 主题色渐变，更老的系统只有渐变。 */
+/** 背景：封面高斯模糊（Android 12+），上面盖一层统一的表面色，保证文字对比度。 */
 @Composable
 private fun Backdrop(state: PlayerUiState) {
-    val scheme = MaterialTheme.colorScheme
     if (state.artworkUri != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         AsyncImage(
             model = state.artworkUri,
@@ -231,23 +240,15 @@ private fun Backdrop(state: PlayerUiState) {
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .blur(60.dp)
-                .alpha(0.55f),
+                .blur(MelodyTokens.sizes.backdropBlur)
+                .alpha(0.5f),
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)),
         )
     }
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        scheme.primaryContainer.copy(alpha = 0.55f),
-                        scheme.surface.copy(alpha = 0.85f),
-                        scheme.surface,
-                    ),
-                ),
-            ),
-    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -258,7 +259,7 @@ private fun DiscPage(state: PlayerUiState, onTap: () -> Unit, onLongPress: () ->
             artworkUri = state.artworkUri,
             isPlaying = state.isPlaying,
             modifier = Modifier
-                .widthIn(max = 340.dp)
+                .widthIn(max = MelodyTokens.sizes.discMax)
                 .padding(horizontal = MelodyTokens.spacing.xxl)
                 .clip(CircleShape)
                 .combinedClickable(
@@ -278,6 +279,7 @@ private fun DiscPage(state: PlayerUiState, onTap: () -> Unit, onLongPress: () ->
 @Composable
 private fun PageDots(current: Int, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
+    val sizes = MelodyTokens.sizes
     Row(
         modifier.semantics { contentDescription = if (current == PAGE_DISC) "唱片页，右滑看歌词" else "歌词页" },
         horizontalArrangement = Arrangement.Center,
@@ -286,8 +288,8 @@ private fun PageDots(current: Int, modifier: Modifier = Modifier) {
         repeat(2) { i ->
             Box(
                 Modifier
-                    .padding(horizontal = 4.dp)
-                    .size(if (i == current) 8.dp else 6.dp)
+                    .padding(horizontal = MelodyTokens.spacing.xs)
+                    .size(if (i == current) sizes.dotActive else sizes.dotInactive)
                     .background(
                         if (i == current) scheme.primary else scheme.onSurfaceVariant.copy(alpha = 0.4f),
                         CircleShape,
@@ -308,6 +310,7 @@ private fun Controls(
     onOpenSleepTimer: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val sizes = MelodyTokens.sizes
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -316,63 +319,27 @@ private fun Controls(
         IconButton(onClick = onCyclePlayMode) {
             Icon(state.playMode.icon, contentDescription = "播放模式：${state.playMode.label}")
         }
-        IconButton(onClick = onPrevious, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Rounded.SkipPrevious, "上一首", Modifier.size(36.dp))
+        IconButton(onClick = onPrevious, modifier = Modifier.size(sizes.controlButton)) {
+            Icon(Icons.Rounded.SkipPrevious, "上一首", Modifier.size(sizes.controlIcon))
         }
         FilledIconButton(
             onClick = onTogglePlay,
-            modifier = Modifier.size(MelodyTokens.sizes.playButton),
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = scheme.primary),
+            modifier = Modifier.size(sizes.playButton),
         ) {
             Icon(
                 if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription = if (state.isPlaying) "暂停" else "播放",
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(sizes.playIcon),
             )
         }
-        IconButton(onClick = onNext, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Rounded.SkipNext, "下一首", Modifier.size(36.dp))
+        IconButton(onClick = onNext, modifier = Modifier.size(sizes.controlButton)) {
+            Icon(Icons.Rounded.SkipNext, "下一首", Modifier.size(sizes.controlIcon))
         }
         IconButton(onClick = onOpenSleepTimer) {
             Icon(
                 Icons.Rounded.Bedtime,
                 contentDescription = sleepTimerLabel?.let { "定时关闭：$it" } ?: "定时关闭",
                 tint = if (sleepTimerLabel != null) scheme.primary else LocalContentColor.current,
-            )
-        }
-    }
-}
-
-/** 拖动时只改本地值，松手才 seek；拖动期间不会被播放进度“抢回去”。 */
-@Composable
-private fun SeekBar(durationMs: Long, position: State<Long>, onSeek: (Long) -> Unit) {
-    var dragging by remember { mutableStateOf<Float?>(null) }
-    val duration = durationMs.coerceAtLeast(1)
-    val shownMs = dragging?.let { (it * duration).toLong() } ?: position.value.coerceAtMost(duration)
-
-    Column(Modifier.fillMaxWidth()) {
-        Slider(
-            value = dragging ?: (position.value.toFloat() / duration).coerceIn(0f, 1f),
-            onValueChange = { dragging = it },
-            onValueChangeFinished = {
-                dragging?.let { onSeek((it * duration).toLong()) }
-                dragging = null
-            },
-            enabled = durationMs > 0,
-            modifier = Modifier.semantics {
-                contentDescription = "播放进度 ${SongMetadata.formatDuration(shownMs)}"
-            },
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                SongMetadata.formatDuration(shownMs),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                SongMetadata.formatDuration(durationMs),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

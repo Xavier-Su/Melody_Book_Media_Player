@@ -38,6 +38,8 @@ data class AppSettings(
     val sortOrder: SortOrder = SortOrder.TITLE,
     val scanFilter: ScanFilter = ScanFilter.ALL,
     val playMode: PlayMode = PlayMode.LIST_LOOP,
+    /** 播放页是否显示频谱。 */
+    val spectrumEnabled: Boolean = true,
 ) {
     /** 当前实际要显示的背景图（Coil 可直接加载的地址），null 表示不显示。 */
     val backgroundModel: String?
@@ -78,6 +80,7 @@ class SettingsRepository(context: Context) {
         val sort = stringPreferencesKey("sort")
         val scanFilter = stringPreferencesKey("scan_filter")
         val playMode = stringPreferencesKey("play_mode")
+        val spectrum = booleanPreferencesKey("spectrum")
         val queue = stringPreferencesKey("queue")
         val queueIndex = intPreferencesKey("queue_index")
         val position = longPreferencesKey("position")
@@ -101,6 +104,7 @@ class SettingsRepository(context: Context) {
             sortOrder = enumOr(p[Keys.sort], SortOrder.TITLE),
             scanFilter = enumOr(p[Keys.scanFilter], ScanFilter.ALL),
             playMode = enumOr(p[Keys.playMode], PlayMode.LIST_LOOP),
+            spectrumEnabled = p[Keys.spectrum] ?: true,
         )
     }
 
@@ -112,6 +116,7 @@ class SettingsRepository(context: Context) {
     suspend fun setSortOrder(order: SortOrder) = store.edit { it[Keys.sort] = order.name }
     suspend fun setScanFilter(filter: ScanFilter) = store.edit { it[Keys.scanFilter] = filter.name }
     suspend fun setPlayMode(mode: PlayMode) = store.edit { it[Keys.playMode] = mode.name }
+    suspend fun setSpectrum(enabled: Boolean) = store.edit { it[Keys.spectrum] = enabled }
 
     /** 选了相册图片就自动切到“相册图片”模式；清除时如果正在用相册图则关掉背景。 */
     suspend fun setWallpaper(uri: String?) = store.edit {

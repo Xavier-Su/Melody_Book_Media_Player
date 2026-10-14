@@ -10,7 +10,10 @@ import com.melodybook.player.data.DarkMode
 import com.melodybook.player.data.PresetBackgrounds
 import com.melodybook.player.data.lyrics.Lyrics
 import com.melodybook.player.data.ScanFilter
+import com.melodybook.player.data.Pinyin
 import com.melodybook.player.data.Song
+import com.melodybook.player.data.SongGroup
+import com.melodybook.player.data.SongGroups
 import com.melodybook.player.data.SongSearch
 import com.melodybook.player.data.SortOrder
 import com.melodybook.player.playback.PlayerConnection
@@ -41,6 +44,9 @@ data class LibraryUiState(
     val loaded: Boolean = false,
     val totalCount: Int = 0,
     val songs: List<Song> = emptyList(),
+    /** 按歌手 / 专辑归类的结果，和 [songs] 一样已经过搜索过滤。 */
+    val artists: List<SongGroup> = emptyList(),
+    val albums: List<SongGroup> = emptyList(),
     val query: String = "",
     val sortOrder: SortOrder = SortOrder.TITLE,
 )
@@ -83,10 +89,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         query,
         settings.filterNotNull().map { it.sortOrder }.distinctUntilChanged(),
     ) { songs, q, order ->
+        val visible = songs?.let { SongSearch.filterAndSort(it, q, order) }.orEmpty()
         LibraryUiState(
             loaded = songs != null,
             totalCount = songs?.size ?: 0,
-            songs = songs?.let { SongSearch.filterAndSort(it, q, order) }.orEmpty(),
+            songs = visible,
+            artists = SongGroups.byArtist(visible),
+            albums = SongGroups.byAlbum(visible) { Pinyin.of(it).first },
             query = q,
             sortOrder = order,
         )
@@ -200,6 +209,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (index >= 0) player.playQueue(list, index) else player.playQueue(listOf(song), 0)
     }
 
+    /** 在某一组（歌手 / 专辑）里点歌：以这一组作为播放队列。 */
+    fun playIn(list: List<Song>, song: Song) {
+        val index = list.indexOfFirst { it.id == song.id }
+        if (index >= 0) player.playQueue(list, index) else player.playQueue(listOf(song), 0)
+    }
+
     fun playNext(song: Song) {
         if (player.playNext(song)) {
             viewModelScope.launch { _messages.send("将在下一首播放“${song.title}”") }
@@ -245,6 +260,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setPresetBackground(file: String) = launchIo { settingsRepo.setPresetBackground(file) }
     fun setBackgroundStrength(value: Float) = launchIo { settingsRepo.setBackgroundStrength(value) }
     fun setRandomPreset(enabled: Boolean) = launchIo { settingsRepo.setRandomPreset(enabled) }
+    fun setSpectrum(enabled: Boolean) = launchIo { settingsRepo.setSpectrum(enabled) }
 
     // ---------------------------------------------------------------- 歌词
 

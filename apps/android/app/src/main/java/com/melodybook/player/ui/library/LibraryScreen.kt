@@ -1,5 +1,6 @@
 package com.melodybook.player.ui.library
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,17 +22,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -42,6 +42,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +57,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.melodybook.player.data.Song
 import com.melodybook.player.data.SortOrder
 import com.melodybook.player.playback.PlayerUiState
@@ -81,6 +82,7 @@ fun LibraryScreen(
     onQueryChange: (String) -> Unit,
     onSortChange: (SortOrder) -> Unit,
     onPlay: (Song) -> Unit,
+    onPlayIn: (List<Song>, Song) -> Unit,
     onPlayNext: (Song) -> Unit,
     onHide: (Song) -> Unit,
     onShuffleAll: () -> Unit,
@@ -93,6 +95,8 @@ fun LibraryScreen(
     val scope = rememberCoroutineScope()
     val focus = LocalFocusManager.current
     var sortMenu by remember { mutableStateOf(false) }
+    var tab by rememberSaveable { mutableStateOf(LibraryTab.ALL) }
+    var openKey by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
@@ -176,6 +180,61 @@ fun LibraryScreen(
                 Row(
                     Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = spacing.lg, vertical = spacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+                ) {
+                    LibraryTab.entries.forEach { t ->
+                        FilterChip(
+                            selected = tab == t,
+                            onClick = {
+                                tab = t
+                                openKey = null
+                            },
+                            label = { Text(t.label) },
+                        )
+                    }
+                }
+
+                if (tab != LibraryTab.ALL) {
+                    val groups = if (tab == LibraryTab.ARTIST) state.artists else state.albums
+                    val open = openKey?.let { k -> groups.firstOrNull { it.key == k } }
+                    // 搜索把打开的那一组过滤没了，就回到列表
+                    LaunchedEffect(open == null, openKey) {
+                        if (openKey != null && open == null) openKey = null
+                    }
+                    BackHandler(enabled = open != null) { openKey = null }
+                    val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                    when {
+                        groups.isEmpty() -> Text(
+                            "没有找到“${state.query}”相关的${tab.label}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(spacing.xxl),
+                        )
+                        open != null -> CategoryDetail(
+                            group = open,
+                            player = player,
+                            bottomPadding = bottomPadding + navBar,
+                            onBack = { openKey = null },
+                            onPlay = onPlayIn,
+                            onPlayNext = onPlayNext,
+                            onHide = onHide,
+                            modifier = Modifier.weight(1f),
+                        )
+                        else -> CategoryList(
+                            groups = groups,
+                            bottomPadding = bottomPadding + navBar,
+                            onOpen = { openKey = it.key },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                } else {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
                         .padding(start = spacing.sm, end = spacing.xs, top = spacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -185,7 +244,7 @@ fun LibraryScreen(
                         contentPadding = PaddingValues(horizontal = spacing.lg),
                         modifier = Modifier.padding(start = spacing.sm),
                     ) {
-                        Icon(Icons.Rounded.Shuffle, contentDescription = null, Modifier.size(18.dp))
+                        Icon(Icons.Rounded.Shuffle, contentDescription = null, Modifier.size(MelodyTokens.sizes.iconSm))
                         Spacer(Modifier.size(spacing.sm))
                         Text("随机播放")
                     }
@@ -252,7 +311,7 @@ fun LibraryScreen(
                                         SongAction("下一首播放") { onPlayNext(song) },
                                         SongAction("从列表移除") { onHide(song) },
                                     ),
-                                    endPadding = if (showIndex) 24.dp else spacing.xs,
+                                    endPadding = if (showIndex) MelodyTokens.sizes.indexGutter else spacing.xs,
                                     modifier = Modifier.animateItem(),
                                 )
                             }
@@ -268,37 +327,33 @@ fun LibraryScreen(
                         }
                     }
                 }
+                }
             }
         }
     }
 }
 
+private enum class LibraryTab(val label: String) { ALL("全部"), ARTIST("歌手"), ALBUM("专辑") }
+
 @Composable
 private fun EmptyState(title: String, body: String, action: String, onAction: () -> Unit) {
     val spacing = MelodyTokens.spacing
+    // 文字靠左、没有大图标：只说明现状和下一步，不做居中的欢迎页
     Column(
         Modifier
             .fillMaxSize()
-            .padding(spacing.xxl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+            .padding(horizontal = spacing.xl, vertical = spacing.xxl),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Top,
     ) {
-        Icon(
-            Icons.Rounded.LibraryMusic,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(64.dp),
-        )
-        Spacer(Modifier.height(spacing.lg))
-        Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        Text(title, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(spacing.sm))
         Text(
             body,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(spacing.xl))
-        Button(onClick = onAction) { Text(action) }
+        Spacer(Modifier.height(spacing.lg))
+        FilledTonalButton(onClick = onAction) { Text(action) }
     }
 }

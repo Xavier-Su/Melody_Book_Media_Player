@@ -60,3 +60,15 @@ data class Song(
  */
 val Song.artworkUri: Uri?
     get() = if (albumId > 0) Song.albumArtUriOf(albumId) else null
+
+/**
+ * 给人看的文件位置，例如 "Music/周杰伦/青花瓷.mp3"，方便在文件管理器里找到它。
+ * 目录来自 MediaStore（Android 10+ 是相对存储根目录的路径），不含存储卷名。
+ * 老数据没有文件名时只显示目录。
+ */
+val Song.displayPath: String
+    get() = when {
+        folder.isBlank() -> fileName
+        fileName.isBlank() -> folder
+        else -> "$folder/$fileName"
+    }

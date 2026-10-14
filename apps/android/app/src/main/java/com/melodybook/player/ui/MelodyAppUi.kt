@@ -55,6 +55,7 @@ import com.melodybook.player.ui.nowplaying.NowPlayingScreen
 import com.melodybook.player.ui.sheets.AppearanceSheet
 import com.melodybook.player.ui.sheets.ScanSheet
 import com.melodybook.player.ui.sheets.SleepTimerSheet
+import com.melodybook.player.ui.theme.MelodyTokens
 import kotlinx.coroutines.delay
 
 private enum class Sheet { NONE, SCAN, APPEARANCE, SLEEP }
@@ -207,7 +208,7 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
 
     var sheet by rememberSaveable { mutableStateOf(Sheet.NONE) }
     var expanded by rememberSaveable { mutableStateOf(false) }
-    val miniPlayerHeight = if (player.hasMedia) 84.dp else 0.dp
+    val miniPlayerHeight = if (player.hasMedia) MelodyTokens.sizes.miniPlayerHeight else 0.dp
 
     Box(
         Modifier
@@ -253,6 +254,7 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
                 onQueryChange = vm::setQuery,
                 onSortChange = vm::setSortOrder,
                 onPlay = vm::play,
+                onPlayIn = vm::playIn,
                 onPlayNext = vm::playNext,
                 onHide = { vm.hide(it) },
                 onShuffleAll = vm::shuffleAll,
@@ -298,6 +300,8 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
                     )
                 },
                 onPickLyricsFolder = { lyricsFolderPicker.launch(null) },
+                spectrumEnabled = settings.spectrumEnabled,
+                onToggleSpectrum = { vm.setSpectrum(!settings.spectrumEnabled) },
                 onCollapse = { expanded = false },
                 onTogglePlay = vm.player::togglePlayPause,
                 onPrevious = vm.player::previous,

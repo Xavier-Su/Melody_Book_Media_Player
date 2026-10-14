@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,14 +30,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.melodybook.player.data.Song
 import com.melodybook.player.data.SongMetadata
 import com.melodybook.player.data.artworkUri
+import com.melodybook.player.data.displayPath
 import com.melodybook.player.ui.theme.MelodyTokens
 
 data class SongAction(val label: String, val onClick: () -> Unit)
@@ -62,12 +66,13 @@ fun SongRow(
     val sizes = MelodyTokens.sizes
     val scheme = MaterialTheme.colorScheme
     var menuOpen by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             // 背景放在 clickable 前面，按压水波纹才会画在高亮色之上
-            .background(if (isCurrent) scheme.primaryContainer.copy(alpha = 0.45f) else Color.Transparent)
+            .background(if (isCurrent) scheme.surfaceContainerHigh else Color.Transparent)
             .combinedClickable(
                 role = Role.Button,
                 onClick = onClick,
@@ -123,6 +128,28 @@ fun SongRow(
                 Icon(Icons.Rounded.MoreVert, contentDescription = "${song.title} 的更多操作")
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                // 文件位置放在所有操作之上，点一下复制，方便去文件管理器里找
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(
+                                "文件位置（点按复制）",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = scheme.onSurfaceVariant,
+                            )
+                            Text(
+                                song.displayPath,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurface,
+                            )
+                        }
+                    },
+                    onClick = {
+                        clipboard.setText(AnnotatedString(song.displayPath))
+                        menuOpen = false
+                    },
+                )
+                HorizontalDivider()
                 actions.forEach { action ->
                     DropdownMenuItem(
                         text = { Text(action.label) },
