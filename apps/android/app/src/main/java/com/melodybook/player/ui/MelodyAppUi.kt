@@ -48,6 +48,8 @@ import coil.compose.AsyncImage
 import com.melodybook.player.data.AppSettings
 import com.melodybook.player.data.ScanFilter
 import com.melodybook.player.data.SongMetadata
+import com.melodybook.player.data.card.cardShareText
+import com.melodybook.player.ui.card.DrawCardDialog
 import com.melodybook.player.playback.SleepTimer
 import com.melodybook.player.ui.components.MiniPlayer
 import com.melodybook.player.ui.library.LibraryScreen
@@ -87,6 +89,7 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
     val lyrics by vm.lyrics.collectAsStateWithLifecycle()
     val weatherText by vm.weatherText.collectAsStateWithLifecycle()
     val lyricsSearch by vm.lyricsSearch.collectAsStateWithLifecycle()
+    val card by vm.card.collectAsStateWithLifecycle()
 
     // 播放进度只在界面可见时轮询
     val positionFlow = remember(vm) { vm.player.positionFlow() }
@@ -266,8 +269,10 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
                 onOpenAppearance = { sheet = Sheet.APPEARANCE },
                 onOpenSleepTimer = { sheet = Sheet.SLEEP },
                 weatherText = weatherText,
-                onlineActive = settings.onlineLyrics || settings.weatherEnabled,
+                onlineActive = settings.onlineLyrics || settings.weatherEnabled || settings.cardEnabled,
                 onOpenOnline = { sheet = Sheet.ONLINE },
+                cardEnabled = settings.cardEnabled,
+                onOpenCard = vm::openCard,
             )
         }
 
@@ -382,6 +387,7 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
             onOnlineLyrics = vm::setOnlineLyrics,
             onWeather = vm::setWeatherEnabled,
             onCity = vm::setWeatherCity,
+            onCard = vm::setCardEnabled,
             onDismiss = { sheet = Sheet.NONE },
         )
         Sheet.SLEEP -> SleepTimerSheet(
@@ -391,6 +397,25 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
             onAfterCurrent = vm::stopAfterCurrent,
             onCancel = vm::cancelSleepTimer,
             onDismiss = { sheet = Sheet.NONE },
+        )
+    }
+
+    card?.let { c ->
+        DrawCardDialog(
+            state = c,
+            onKind = vm::setCardKind,
+            onCategory = vm::setCardCategory,
+            onZodiac = vm::setCardZodiac,
+            onRedraw = vm::drawCard,
+            onShare = {
+                c.content?.let { content ->
+                    val send = Intent(Intent.ACTION_SEND)
+                        .setType("text/plain")
+                        .putExtra(Intent.EXTRA_TEXT, cardShareText(content, c.lunar))
+                    context.startActivity(Intent.createChooser(send, "分享卡片"))
+                }
+            },
+            onDismiss = vm::closeCard,
         )
     }
 

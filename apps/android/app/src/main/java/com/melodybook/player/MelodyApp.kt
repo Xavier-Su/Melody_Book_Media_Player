@@ -7,6 +7,7 @@ import com.melodybook.player.data.MediaScanner
 import com.melodybook.player.data.MelodyDatabase
 import com.melodybook.player.data.SettingsRepository
 import com.melodybook.player.data.lyrics.LyricsRepository
+import com.melodybook.player.data.card.CardRepository
 import com.melodybook.player.data.weather.WeatherRepository
 import com.melodybook.player.playback.SleepTimer
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +25,7 @@ class AppContainer(context: Context) {
     val sleepTimer = SleepTimer()
     val lyrics = LyricsRepository(context)
     val weather = WeatherRepository()
+    val card = CardRepository()
 }
 
 class MelodyApp : Application() {

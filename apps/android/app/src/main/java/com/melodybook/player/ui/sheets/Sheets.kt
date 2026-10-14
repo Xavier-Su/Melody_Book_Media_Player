@@ -181,6 +181,7 @@ fun OnlineSheet(
     onOnlineLyrics: (Boolean) -> Unit,
     onWeather: (Boolean) -> Unit,
     onCity: (String) -> Unit,
+    onCard: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val spacing = MelodyTokens.spacing
@@ -196,6 +197,14 @@ fun OnlineSheet(
         Text(
             "向 lrclib.net 发送歌名、歌手和时长来查找歌词。下载过的歌词会保存在本机，不会重复联网。" +
                 "自动匹配不对时，可以在歌词页点搜索自己重新选。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SectionLabel("抽卡")
+        SwitchRow("主页显示“抽卡”按钮", settings.cardEnabled, onCard)
+        Text(
+            "向 hitokoto.cn 取美句，向 xxapi.cn 取灵签和星座运势，向 picsum.photos 取背景图。" +
+                "农历和宜忌在本机计算，不联网。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

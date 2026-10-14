@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +98,9 @@ fun LibraryScreen(
     weatherText: String?,
     onlineActive: Boolean,
     onOpenOnline: () -> Unit,
+    /** 设置里开了抽卡才显示入口。 */
+    cardEnabled: Boolean,
+    onOpenCard: () -> Unit,
 ) {
     val spacing = MelodyTokens.spacing
     val listState = rememberLazyListState()
@@ -134,6 +138,11 @@ fun LibraryScreen(
                         tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                if (cardEnabled) {
+                    IconButton(onClick = onOpenCard) {
+                        Icon(Icons.Rounded.AutoAwesome, contentDescription = "抽卡")
+                    }
                 }
                 IconButton(onClick = onOpenOnline) {
                     Icon(

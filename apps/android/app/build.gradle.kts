@@ -92,6 +92,8 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.coil.compose)
+    // 农历、干支、宜忌都在本机计算，不依赖网络
+    implementation(libs.lunar)
 
     testImplementation(libs.junit)
 }

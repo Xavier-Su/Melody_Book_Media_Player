@@ -9,7 +9,14 @@ import com.melodybook.player.data.BackgroundMode
 import com.melodybook.player.data.DarkMode
 import com.melodybook.player.data.PresetBackgrounds
 import com.melodybook.player.data.SongMetadata
+import com.melodybook.player.data.card.CardContent
+import com.melodybook.player.data.card.CardKind
+import com.melodybook.player.data.card.LunarInfo
+import com.melodybook.player.data.card.QuoteCategory
+import com.melodybook.player.data.card.Zodiac
 import com.melodybook.player.data.lyrics.LrclibItem
+import kotlinx.coroutines.Job
+import java.time.LocalDate
 import com.melodybook.player.data.lyrics.Lyrics
 import com.melodybook.player.data.ScanFilter
 import com.melodybook.player.data.Pinyin
@@ -54,6 +61,18 @@ data class LibraryUiState(
     val sortOrder: SortOrder = SortOrder.TITLE,
 )
 
+/** 抽卡弹层的状态。农历在本机算，打开时立刻有；美句和图片联网获取。 */
+data class CardUiState(
+    val kind: CardKind = CardKind.QUOTE,
+    val category: QuoteCategory = QuoteCategory.ANY,
+    val zodiac: Zodiac = Zodiac.ARIES,
+    val loading: Boolean = true,
+    val content: CardContent? = null,
+    val imageUrl: String? = null,
+    val lunar: LunarInfo? = null,
+    val error: String? = null,
+)
+
 /** 手动搜索歌词弹层的状态。[songId] 是打开弹层时正在播放的歌，选歌词时存到这首上。 */
 data class LyricsSearchState(
     val songId: Long,
@@ -78,6 +97,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsRepo = container.settings
     private val lyricsRepo = container.lyrics
     private val weatherRepo = container.weather
+    private val cardRepo = container.card
     val sleepTimer: SleepTimer = container.sleepTimer
 
     val player = PlayerConnection(app, viewModelScope, library, settingsRepo)
@@ -336,6 +356,66 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 _messages.send("已使用“${item.title} - ${item.artist}”的歌词")
             } else {
                 _messages.send("这条歌词无法使用")
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- 联网：抽卡
+
+    fun setCardEnabled(enabled: Boolean) = launchIo { settingsRepo.setCardEnabled(enabled) }
+
+    private val _card = MutableStateFlow<CardUiState?>(null)
+    /** null 表示抽卡弹层没有打开。 */
+    val card: StateFlow<CardUiState?> = _card.asStateFlow()
+    private var cardJob: Job? = null
+
+    fun openCard() {
+        viewModelScope.launch {
+            // 星座记住上次选的，下次打开直接是它
+            val zodiac = Zodiac.fromCode(settingsRepo.current().cardZodiac)
+            _card.value = CardUiState(zodiac = zodiac, lunar = LunarInfo.of(LocalDate.now()))
+            drawCard()
+        }
+    }
+
+    fun closeCard() {
+        cardJob?.cancel()
+        _card.value = null
+    }
+
+    fun setCardCategory(category: QuoteCategory) {
+        _card.value = _card.value?.copy(category = category) ?: return
+        drawCard()
+    }
+
+    fun setCardKind(kind: CardKind) {
+        _card.value = _card.value?.copy(kind = kind) ?: return
+        drawCard()
+    }
+
+    fun setCardZodiac(zodiac: Zodiac) {
+        _card.value = _card.value?.copy(zodiac = zodiac) ?: return
+        launchIo { settingsRepo.setCardZodiac(zodiac.code) }
+        drawCard()
+    }
+
+    /** 抽（或再抽）一张。正文联网获取，失败时给出可重试的提示；背景图由界面自己加载。 */
+    fun drawCard() {
+        val cur = _card.value ?: return
+        cardJob?.cancel()
+        _card.value = cur.copy(loading = true, error = null)
+        cardJob = viewModelScope.launch {
+            try {
+                val content = when (cur.kind) {
+                    CardKind.QUOTE -> cardRepo.quote(cur.category)
+                    CardKind.STICK -> cardRepo.stick()
+                    CardKind.HOROSCOPE -> cardRepo.horoscope(cur.zodiac)
+                }
+                _card.value = _card.value?.copy(loading = false, content = content, imageUrl = cardRepo.imageUrl())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _card.value = _card.value?.copy(loading = false, error = "联网失败，点“再抽一次”重试")
             }
         }
     }

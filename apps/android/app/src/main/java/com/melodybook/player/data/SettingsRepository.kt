@@ -47,6 +47,10 @@ data class AppSettings(
     /** 主页显示天气（Open-Meteo）。默认关闭。 */
     val weatherEnabled: Boolean = false,
     val weatherPlace: WeatherPlace? = null,
+    /** 主页“抽卡”入口（Hitokoto、随机图片）。默认关闭。 */
+    val cardEnabled: Boolean = false,
+    /** 抽卡里上次选的星座（接口用的英文名）。 */
+    val cardZodiac: String = "aries",
 ) {
     /** 当前实际要显示的背景图（Coil 可直接加载的地址），null 表示不显示。 */
     val backgroundModel: String?
@@ -90,6 +94,8 @@ class SettingsRepository(context: Context) {
         val spectrum = booleanPreferencesKey("spectrum")
         val onlineLyrics = booleanPreferencesKey("online_lyrics")
         val weather = booleanPreferencesKey("weather")
+        val card = booleanPreferencesKey("card")
+        val cardZodiac = stringPreferencesKey("card_zodiac")
         val weatherName = stringPreferencesKey("weather_name")
         val weatherLat = doublePreferencesKey("weather_lat")
         val weatherLon = doublePreferencesKey("weather_lon")
@@ -119,6 +125,8 @@ class SettingsRepository(context: Context) {
             spectrumEnabled = p[Keys.spectrum] ?: true,
             onlineLyrics = p[Keys.onlineLyrics] ?: false,
             weatherEnabled = p[Keys.weather] ?: false,
+            cardEnabled = p[Keys.card] ?: false,
+            cardZodiac = p[Keys.cardZodiac] ?: "aries",
             weatherPlace = run {
                 val name = p[Keys.weatherName]
                 val lat = p[Keys.weatherLat]
@@ -139,6 +147,8 @@ class SettingsRepository(context: Context) {
     suspend fun setSpectrum(enabled: Boolean) = store.edit { it[Keys.spectrum] = enabled }
     suspend fun setOnlineLyrics(enabled: Boolean) = store.edit { it[Keys.onlineLyrics] = enabled }
     suspend fun setWeatherEnabled(enabled: Boolean) = store.edit { it[Keys.weather] = enabled }
+    suspend fun setCardEnabled(enabled: Boolean) = store.edit { it[Keys.card] = enabled }
+    suspend fun setCardZodiac(code: String) = store.edit { it[Keys.cardZodiac] = code }
 
     suspend fun setWeatherPlace(place: WeatherPlace) = store.edit {
         it[Keys.weatherName] = place.name
