@@ -1,6 +1,7 @@
 package com.melodybook.player.ui.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -30,6 +32,7 @@ import com.melodybook.player.data.SongGroup
 import com.melodybook.player.data.artworkUri
 import com.melodybook.player.playback.PlayerUiState
 import com.melodybook.player.ui.components.Artwork
+import com.melodybook.player.ui.components.ListScrollbar
 import com.melodybook.player.ui.components.SongAction
 import com.melodybook.player.ui.components.SongRow
 import com.melodybook.player.ui.theme.MelodyTokens
@@ -44,9 +47,12 @@ fun CategoryList(
 ) {
     val spacing = MelodyTokens.spacing
     val sizes = MelodyTokens.sizes
+    val listState = rememberLazyListState()
+    Box(modifier.fillMaxSize()) {
     LazyColumn(
+        state = listState,
         contentPadding = PaddingValues(bottom = bottomPadding + spacing.sm),
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
     ) {
         items(groups, key = { it.key }, contentType = { "group" }) { group ->
             Row(
@@ -80,6 +86,14 @@ fun CategoryList(
                 }
             }
         }
+    }
+    ListScrollbar(
+        listState = listState,
+        itemCount = groups.size,
+        modifier = Modifier
+            .align(Alignment.CenterEnd)
+            .padding(top = spacing.sm, bottom = bottomPadding + spacing.sm),
+    )
     }
 }
 
@@ -127,7 +141,10 @@ fun CategoryDetail(
                 Text("播放全部")
             }
         }
+        val listState = rememberLazyListState()
+        Box(Modifier.fillMaxSize()) {
         LazyColumn(
+            state = listState,
             contentPadding = PaddingValues(bottom = bottomPadding + spacing.sm),
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -144,6 +161,14 @@ fun CategoryDetail(
                     ),
                 )
             }
+        }
+        ListScrollbar(
+            listState = listState,
+            itemCount = group.songs.size,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(top = spacing.sm, bottom = bottomPadding + spacing.sm),
+        )
         }
     }
 }

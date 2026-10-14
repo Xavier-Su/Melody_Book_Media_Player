@@ -54,6 +54,8 @@ data class Sizes(
     val discMax: Dp = 320.dp,
     val backdropBlur: Dp = 60.dp,
     val indexGutter: Dp = 24.dp,
+    val scrollbarGutter: Dp = 20.dp,
+    val scrollbarTrack: Dp = 4.dp,
     val swatch: Dp = 40.dp,
     val presetThumbWidth: Dp = 64.dp,
     val presetThumbHeight: Dp = 96.dp,

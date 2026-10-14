@@ -20,13 +20,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
-import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,10 +57,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.melodybook.player.data.Song
 import com.melodybook.player.data.SortOrder
 import com.melodybook.player.playback.PlayerUiState
 import com.melodybook.player.ui.LibraryUiState
+import com.melodybook.player.ui.components.ListScrollbar
 import com.melodybook.player.ui.components.SongAction
 import com.melodybook.player.ui.components.SongRow
 import com.melodybook.player.ui.theme.MelodyTokens
@@ -115,7 +117,7 @@ fun LibraryScreen(
             actions = {
                 IconButton(onClick = onOpenSleepTimer) {
                     Icon(
-                        Icons.Rounded.Bedtime,
+                        Icons.Rounded.Timer,
                         contentDescription = "定时关闭",
                         tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -316,6 +318,18 @@ fun LibraryScreen(
                                 )
                             }
                         }
+                        // 字母索引在最右侧时，滚动条让到它左边
+                        ListScrollbar(
+                            listState = listState,
+                            itemCount = state.songs.size,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(
+                                    end = if (showIndex) MelodyTokens.sizes.indexGutter else 0.dp,
+                                    top = spacing.sm,
+                                    bottom = bottomPadding + navBar + spacing.sm,
+                                ),
+                        )
                         if (showIndex) {
                             AlphabetIndex(
                                 songs = state.songs,

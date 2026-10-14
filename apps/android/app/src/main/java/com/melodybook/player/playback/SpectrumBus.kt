@@ -13,14 +13,30 @@ object SpectrumBus {
     private val lock = Any()
     private val frames = ArrayDeque<Frame>()
 
-    /** 频谱界面可见且开关打开时才为 true；false 时处理器完全跳过分析，不耗 CPU。 */
+    /** 使用者计数：频谱条、背景呼吸各算一个。 */
+    private var users = 0
+
+    /** 有界面在用时才为 true；false 时处理器完全跳过分析，不耗 CPU。 */
     @Volatile
     var active: Boolean = false
         private set
 
-    fun setActive(value: Boolean) {
-        active = value
-        if (!value) clear()
+    /** 开始使用。和 [release] 成对调用，所有使用者都释放后才停止分析。 */
+    fun acquire() {
+        synchronized(lock) {
+            users++
+            active = true
+        }
+    }
+
+    fun release() {
+        synchronized(lock) {
+            users = (users - 1).coerceAtLeast(0)
+            if (users == 0) {
+                active = false
+                frames.clear()
+            }
+        }
     }
 
     fun publish(timeNs: Long, levels: FloatArray) {

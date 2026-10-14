@@ -25,13 +25,13 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +51,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -74,6 +76,34 @@ private const val PAGE_LYRICS = 1
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NowPlayingScreen(
+    state: PlayerUiState,
+    position: State<Long>,
+    lyrics: LyricsUiState,
+    sleepTimerLabel: String?,
+    onCollapse: () -> Unit,
+    onTogglePlay: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onSeek: (Long) -> Unit,
+    onCyclePlayMode: () -> Unit,
+    onOpenSleepTimer: () -> Unit,
+    onNoLyrics: () -> Unit,
+    onPickLyricsFolder: () -> Unit,
+    spectrumEnabled: Boolean,
+    onToggleSpectrum: () -> Unit,
+) {
+    // 整个播放页换成按封面取色的配色，没有封面时就是当前皮肤
+    MaterialTheme(colorScheme = rememberAlbumColorScheme(state.artworkUri)) {
+        NowPlayingContent(
+            state, position, lyrics, sleepTimerLabel, onCollapse, onTogglePlay, onPrevious, onNext, onSeek,
+            onCyclePlayMode, onOpenSleepTimer, onNoLyrics, onPickLyricsFolder, spectrumEnabled, onToggleSpectrum,
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun NowPlayingContent(
     state: PlayerUiState,
     position: State<Long>,
     lyrics: LyricsUiState,
@@ -230,10 +260,23 @@ fun NowPlayingScreen(
     }
 }
 
-/** 背景：封面高斯模糊（Android 12+），上面盖一层统一的表面色，保证文字对比度。 */
+/** 呼吸最强时，遮罩变薄多少（透出更多封面 / 主色）。幅度要小，只是“轻轻一亮”。 */
+private const val PULSE_DEPTH = 0.12f
+
+/**
+ * 背景：封面铺满后高斯模糊（Android 12+），上面盖一层表面色保证文字对比度。
+ * 遮罩不是全透明的纯色，而是从主色淡淡过渡到表面色，和按钮颜色呼应。
+ * Android 12 以下没有模糊，只用主色渐变。没有封面时 [MaterialTheme] 就是皮肤配色，效果和原来一致。
+ *
+ * 播放时遮罩跟着低频鼓点轻微变薄（节拍呼吸）。强度只在绘制阶段读取，不会让整页重组。
+ */
 @Composable
 private fun Backdrop(state: PlayerUiState) {
-    if (state.artworkUri != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val scheme = MaterialTheme.colorScheme
+    val hasArt = state.artworkUri != null
+    val pulse = rememberBeatPulse(active = hasArt && state.isPlaying)
+
+    if (hasArt && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         AsyncImage(
             model = state.artworkUri,
             contentDescription = null,
@@ -241,14 +284,25 @@ private fun Backdrop(state: PlayerUiState) {
             modifier = Modifier
                 .fillMaxSize()
                 .blur(MelodyTokens.sizes.backdropBlur)
-                .alpha(0.5f),
-        )
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)),
+                .alpha(0.6f),
         )
     }
+    if (!hasArt) return
+    val base = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.7f else 0.88f
+    Box(
+        Modifier
+            .fillMaxSize()
+            .drawBehind {
+                val a = base - PULSE_DEPTH * pulse.value
+                drawRect(
+                    Brush.verticalGradient(
+                        0f to scheme.primaryContainer.copy(alpha = a),
+                        0.6f to scheme.surface.copy(alpha = a),
+                        1f to scheme.surface.copy(alpha = (a + 0.1f).coerceAtMost(1f)),
+                    ),
+                )
+            },
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -337,7 +391,7 @@ private fun Controls(
         }
         IconButton(onClick = onOpenSleepTimer) {
             Icon(
-                Icons.Rounded.Bedtime,
+                Icons.Rounded.Timer,
                 contentDescription = sleepTimerLabel?.let { "定时关闭：$it" } ?: "定时关闭",
                 tint = if (sleepTimerLabel != null) scheme.primary else LocalContentColor.current,
             )

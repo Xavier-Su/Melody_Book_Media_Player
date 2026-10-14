@@ -25,7 +25,7 @@ import com.melodybook.player.ui.theme.MelodyTokens
 import kotlinx.coroutines.flow.first
 
 /** 音频输出到扬声器还要一点时间，画面再晚一点点才和耳朵里听到的对得上。 */
-private const val OUTPUT_LATENCY_NS = 40_000_000L
+internal const val OUTPUT_LATENCY_NS = 40_000_000L
 
 /** 条的下落速度：每秒最多落掉整根的多少。上升是即时的，所以有“跳一下”的节奏感。 */
 private const val FALL_PER_SECOND = 2.5f
@@ -49,8 +49,8 @@ fun SpectrumView(isPlaying: Boolean, modifier: Modifier = Modifier) {
     val playing by rememberUpdatedState(isPlaying)
 
     DisposableEffect(Unit) {
-        SpectrumBus.setActive(true)
-        onDispose { SpectrumBus.setActive(false) }
+        SpectrumBus.acquire()
+        onDispose { SpectrumBus.release() }
     }
 
     LaunchedEffect(Unit) {
