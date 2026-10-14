@@ -13,6 +13,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.core.doublePreferencesKey
 import com.melodybook.player.data.card.QuoteCategory
 import com.melodybook.player.data.weather.WeatherPlace
+import com.melodybook.player.orbit.OrbitConfig
+import com.melodybook.player.orbit.OrbitSwitchRule
+import com.melodybook.player.orbit.OrbitTimeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -54,6 +57,8 @@ data class AppSettings(
     val cardZodiac: String = "aries",
     /** 抽到美句时用的 Hitokoto 分类。 */
     val cardCategory: QuoteCategory = QuoteCategory.ANY,
+    /** 播放页唱片外围的日月轨道。 */
+    val orbit: OrbitConfig = OrbitConfig(),
 ) {
     /** 当前实际要显示的背景图（Coil 可直接加载的地址），null 表示不显示。 */
     val backgroundModel: String?
@@ -103,6 +108,14 @@ class SettingsRepository(context: Context) {
         val weatherName = stringPreferencesKey("weather_name")
         val weatherLat = doublePreferencesKey("weather_lat")
         val weatherLon = doublePreferencesKey("weather_lon")
+        val orbitEnabled = booleanPreferencesKey("orbit_enabled")
+        val orbitMode = stringPreferencesKey("orbit_mode")
+        val orbitPreview = intPreferencesKey("orbit_preview_sec")
+        val orbitStart = floatPreferencesKey("orbit_start_deg")
+        val orbitReverse = booleanPreferencesKey("orbit_reverse")
+        val orbitRule = stringPreferencesKey("orbit_rule")
+        val orbitScale = floatPreferencesKey("orbit_scale")
+        val orbitTicks = booleanPreferencesKey("orbit_ticks")
         val queue = stringPreferencesKey("queue")
         val queueIndex = intPreferencesKey("queue_index")
         val position = longPreferencesKey("position")
@@ -132,6 +145,18 @@ class SettingsRepository(context: Context) {
             cardEnabled = p[Keys.card] ?: false,
             cardZodiac = p[Keys.cardZodiac] ?: "aries",
             cardCategory = enumOr(p[Keys.cardCategory], QuoteCategory.ANY),
+            orbit = OrbitConfig().let { d ->
+                OrbitConfig(
+                    enabled = p[Keys.orbitEnabled] ?: d.enabled,
+                    mode = enumOr(p[Keys.orbitMode], d.mode),
+                    previewPeriodSec = (p[Keys.orbitPreview] ?: d.previewPeriodSec).coerceIn(1, 3600),
+                    startDeg = p[Keys.orbitStart] ?: d.startDeg,
+                    reverse = p[Keys.orbitReverse] ?: d.reverse,
+                    switchRule = enumOr(p[Keys.orbitRule], d.switchRule),
+                    scale = (p[Keys.orbitScale] ?: d.scale).coerceIn(OrbitConfig.SCALE_MIN, OrbitConfig.SCALE_MAX),
+                    showTicks = p[Keys.orbitTicks] ?: d.showTicks,
+                )
+            },
             weatherPlace = run {
                 val name = p[Keys.weatherName]
                 val lat = p[Keys.weatherLat]
@@ -155,6 +180,17 @@ class SettingsRepository(context: Context) {
     suspend fun setCardEnabled(enabled: Boolean) = store.edit { it[Keys.card] = enabled }
     suspend fun setCardZodiac(code: String) = store.edit { it[Keys.cardZodiac] = code }
     suspend fun setCardCategory(category: QuoteCategory) = store.edit { it[Keys.cardCategory] = category.name }
+
+    suspend fun setOrbit(c: OrbitConfig) = store.edit {
+        it[Keys.orbitEnabled] = c.enabled
+        it[Keys.orbitMode] = c.mode.name
+        it[Keys.orbitPreview] = c.previewPeriodSec
+        it[Keys.orbitStart] = c.startDeg
+        it[Keys.orbitReverse] = c.reverse
+        it[Keys.orbitRule] = c.switchRule.name
+        it[Keys.orbitScale] = c.scale
+        it[Keys.orbitTicks] = c.showTicks
+    }
 
     suspend fun setWeatherPlace(place: WeatherPlace) = store.edit {
         it[Keys.weatherName] = place.name

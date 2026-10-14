@@ -11,6 +11,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
@@ -66,6 +68,8 @@ import coil.compose.AsyncImage
 import com.melodybook.player.data.SongMetadata
 import com.melodybook.player.playback.PlayerUiState
 import com.melodybook.player.ui.LyricsUiState
+import com.melodybook.player.orbit.OrbitConfig
+import com.melodybook.player.orbit.OrbitMath
 import com.melodybook.player.ui.components.icon
 import com.melodybook.player.ui.theme.MelodyTokens
 import kotlinx.coroutines.launch
@@ -93,13 +97,16 @@ fun NowPlayingScreen(
     onSearchLyrics: () -> Unit,
     spectrumEnabled: Boolean,
     onToggleSpectrum: () -> Unit,
+    orbit: OrbitConfig,
+    orbitClock: OrbitPreviewClock,
+    onOpenOrbit: () -> Unit,
 ) {
     // 整个播放页换成按封面取色的配色，没有封面时就是当前皮肤
     MaterialTheme(colorScheme = rememberAlbumColorScheme(state.artworkUri)) {
         NowPlayingContent(
             state, position, lyrics, sleepTimerLabel, onCollapse, onTogglePlay, onPrevious, onNext, onSeek,
             onCyclePlayMode, onOpenSleepTimer, onNoLyrics, onPickLyricsFolder, onlineLyrics, onSearchLyrics,
-            spectrumEnabled, onToggleSpectrum,
+            spectrumEnabled, onToggleSpectrum, orbit, orbitClock, onOpenOrbit,
         )
     }
 }
@@ -124,6 +131,9 @@ private fun NowPlayingContent(
     onSearchLyrics: () -> Unit,
     spectrumEnabled: Boolean,
     onToggleSpectrum: () -> Unit,
+    orbit: OrbitConfig,
+    orbitClock: OrbitPreviewClock,
+    onOpenOrbit: () -> Unit,
 ) {
     val spacing = MelodyTokens.spacing
     val sizes = MelodyTokens.sizes
@@ -133,6 +143,12 @@ private fun NowPlayingContent(
 
     val pager = rememberPagerState(initialPage = PAGE_DISC) { 2 }
     var showAlbumArt by rememberSaveable { mutableStateOf(false) }
+    // 拖动进度条 seek 后让轨道立即跳转，不等下一次进度轮询
+    val seekHint = remember { mutableStateOf<SeekHint?>(null) }
+    val seekWithHint: (Long) -> Unit = { ms ->
+        seekHint.value = SeekHint(ms, System.nanoTime())
+        onSeek(ms)
+    }
 
     // 返回键：先关大图，再回唱片页，最后才收起播放页
     BackHandler(enabled = !showAlbumArt) {
@@ -183,6 +199,13 @@ private fun NowPlayingContent(
                     current = pager.currentPage,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = onOpenOrbit) {
+                    Icon(
+                        Icons.Rounded.WbSunny,
+                        contentDescription = "日月轨道设置",
+                        tint = if (orbit.enabled) scheme.primary else scheme.onSurfaceVariant,
+                    )
+                }
                 IconButton(onClick = onToggleSpectrum) {
                     Icon(
                         Icons.Rounded.GraphicEq,
@@ -201,6 +224,10 @@ private fun NowPlayingContent(
                 when (page) {
                     PAGE_DISC -> DiscPage(
                         state = state,
+                        position = position,
+                        seekHint = seekHint,
+                        orbit = orbit,
+                        orbitClock = orbitClock,
                         onTap = ::openLyrics,
                         onLongPress = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -210,7 +237,7 @@ private fun NowPlayingContent(
                     else -> LyricsPage(
                         state = lyrics,
                         position = position,
-                        onSeek = onSeek,
+                        onSeek = seekWithHint,
                         onPickLyricsFolder = onPickLyricsFolder,
                         onlineLyrics = onlineLyrics,
                         onSearchLyrics = onSearchLyrics,
@@ -244,7 +271,7 @@ private fun NowPlayingContent(
                 }
 
                 Spacer(Modifier.height(spacing.sm))
-                SeekBar(state.durationMs, position, onSeek)
+                SeekBar(state.durationMs, position, seekWithHint)
 
                 Spacer(Modifier.height(spacing.md))
                 Controls(state, sleepTimerLabel, onTogglePlay, onPrevious, onNext, onCyclePlayMode, onOpenSleepTimer)
@@ -315,25 +342,67 @@ private fun Backdrop(state: PlayerUiState) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DiscPage(state: PlayerUiState, onTap: () -> Unit, onLongPress: () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        SpinningDisc(
-            artworkUri = state.artworkUri,
-            isPlaying = state.isPlaying,
-            modifier = Modifier
-                .widthIn(max = MelodyTokens.sizes.discMax)
-                .padding(horizontal = MelodyTokens.spacing.xxl)
-                .clip(CircleShape)
-                .combinedClickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    role = Role.Button,
-                    onClickLabel = "查看歌词",
-                    onLongClickLabel = "查看专辑图片",
-                    onClick = onTap,
-                    onLongClick = onLongPress,
-                ),
+private fun DiscPage(
+    state: PlayerUiState,
+    position: State<Long>,
+    seekHint: State<SeekHint?>,
+    orbit: OrbitConfig,
+    orbitClock: OrbitPreviewClock,
+    onTap: () -> Unit,
+    onLongPress: () -> Unit,
+) {
+    val tapModifier = Modifier
+        .clip(CircleShape)
+        .combinedClickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            role = Role.Button,
+            onClickLabel = "查看歌词",
+            onLongClickLabel = "查看专辑图片",
+            onClick = onTap,
+            onLongClick = onLongPress,
         )
+    if (!orbit.enabled) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            SpinningDisc(
+                artworkUri = state.artworkUri,
+                isPlaying = state.isPlaying,
+                modifier = Modifier
+                    .widthIn(max = MelodyTokens.sizes.discMax)
+                    .padding(horizontal = MelodyTokens.spacing.xxl)
+                    .then(tapModifier),
+            )
+        }
+        return
+    }
+
+    // 轨道层叠在唱片后面，唱片尺寸 = (正方形边长 - 两侧边距) / 轨道比例，窗口变化时自动重算
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val ratio = OrbitMath.ringRatio(orbit.scale)
+        val pad = MelodyTokens.spacing.lg
+        val orbitSide = minOf(
+            maxWidth - pad * 2,
+            maxHeight,
+            MelodyTokens.sizes.discMax * ratio + OrbitHaloMargin * 2,
+        )
+        val discSize = (orbitSide - OrbitHaloMargin * 2) / ratio
+        val cycle = rememberOrbitCycle(
+            config = orbit,
+            trackKey = state.currentId,
+            durationMs = state.durationMs,
+            isPlaying = state.isPlaying,
+            position = position,
+            seekHint = seekHint,
+            clock = orbitClock,
+        )
+        Box(Modifier.size(orbitSide), contentAlignment = Alignment.Center) {
+            CelestialOrbit(cycle = cycle, config = orbit)
+            SpinningDisc(
+                artworkUri = state.artworkUri,
+                isPlaying = state.isPlaying,
+                modifier = Modifier.size(discSize).then(tapModifier),
+            )
+        }
     }
 }
 

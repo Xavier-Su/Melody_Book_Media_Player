@@ -297,6 +297,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setBackgroundStrength(value: Float) = launchIo { settingsRepo.setBackgroundStrength(value) }
     fun setRandomPreset(enabled: Boolean) = launchIo { settingsRepo.setRandomPreset(enabled) }
     fun setSpectrum(enabled: Boolean) = launchIo { settingsRepo.setSpectrum(enabled) }
+    fun setOrbit(config: com.melodybook.player.orbit.OrbitConfig) = launchIo { settingsRepo.setOrbit(config) }
+
+    /** 日月轨道的预览时钟。放在这里，旋转屏幕不会重置，设置弹层也能控制。 */
+    val orbitClock = com.melodybook.player.ui.nowplaying.OrbitPreviewClock()
 
     // ---------------------------------------------------------------- 歌词
 

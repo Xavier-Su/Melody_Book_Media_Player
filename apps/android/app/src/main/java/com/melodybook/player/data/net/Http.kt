@@ -7,7 +7,7 @@ import java.net.URLEncoder
 
 /** 极简 HTTPS GET。联网功能只有两个 JSON 接口，不值得为此引入网络库。 */
 object Http {
-    private const val USER_AGENT = "MelodyBook/2.1.0"
+    private const val USER_AGENT = "MelodyBook/2.2.0"
     private const val TIMEOUT_MS = 8_000
 
     fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")

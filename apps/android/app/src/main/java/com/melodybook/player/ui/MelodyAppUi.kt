@@ -57,12 +57,13 @@ import com.melodybook.player.ui.nowplaying.NowPlayingScreen
 import com.melodybook.player.ui.sheets.AppearanceSheet
 import com.melodybook.player.ui.sheets.LyricsSearchSheet
 import com.melodybook.player.ui.sheets.OnlineSheet
+import com.melodybook.player.ui.sheets.OrbitSheet
 import com.melodybook.player.ui.sheets.ScanSheet
 import com.melodybook.player.ui.sheets.SleepTimerSheet
 import com.melodybook.player.ui.theme.MelodyTokens
 import kotlinx.coroutines.delay
 
-private enum class Sheet { NONE, SCAN, APPEARANCE, SLEEP, ONLINE }
+private enum class Sheet { NONE, SCAN, APPEARANCE, SLEEP, ONLINE, ORBIT }
 
 private fun audioPermission(): String =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_AUDIO
@@ -316,6 +317,9 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
                 onSearchLyrics = vm::openLyricsSearch,
                 spectrumEnabled = settings.spectrumEnabled,
                 onToggleSpectrum = { vm.setSpectrum(!settings.spectrumEnabled) },
+                orbit = settings.orbit,
+                orbitClock = vm.orbitClock,
+                onOpenOrbit = { sheet = Sheet.ORBIT },
                 onCollapse = { expanded = false },
                 onTogglePlay = vm.player::togglePlayPause,
                 onPrevious = vm.player::previous,
@@ -390,6 +394,14 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
             onCard = vm::setCardEnabled,
             onCardCategory = vm::setCardCategory,
             onCardZodiac = vm::setCardZodiac,
+            onDismiss = { sheet = Sheet.NONE },
+        )
+        Sheet.ORBIT -> OrbitSheet(
+            config = settings.orbit,
+            previewRunning = vm.orbitClock.running,
+            onConfig = vm::setOrbit,
+            onTogglePreview = vm.orbitClock::toggle,
+            onResetPreview = vm.orbitClock::reset,
             onDismiss = { sheet = Sheet.NONE },
         )
         Sheet.SLEEP -> SleepTimerSheet(

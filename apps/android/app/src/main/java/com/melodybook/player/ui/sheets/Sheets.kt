@@ -86,7 +86,7 @@ import com.melodybook.player.ui.theme.LocalIsDarkTheme
 /** 所有弹层共用的外壳：统一标题样式和内边距。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MelodySheet(
+internal fun MelodySheet(
     title: String,
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
@@ -112,7 +112,7 @@ private fun MelodySheet(
 }
 
 @Composable
-private fun SectionLabel(text: String) {
+internal fun SectionLabel(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.labelLarge,
@@ -385,7 +385,7 @@ fun ScanSheet(
 }
 
 @Composable
-private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
