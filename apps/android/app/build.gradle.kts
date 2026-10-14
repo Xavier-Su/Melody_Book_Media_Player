@@ -44,12 +44,13 @@ android {
 }
 
 /**
- * 复用旧版的 21 张预置背景图（../Android/src/main/res/drawable/bg*.jpg），
+ * 复用旧版的 21 张预置背景图（legacy/android-java/src/main/res/drawable/bg*.jpg），
  * 构建时复制到 assets/backgrounds/，不在新工程里存第二份。
- * 如果以后删掉旧工程，把图片移到 app/src/main/assets/backgrounds/ 即可，代码不用改。
+ * 仓库重构后旧工程移到了 legacy/，这里的路径要跟着走。
+ * 如果以后删掉 legacy/，把图片移到 app/src/main/assets/backgrounds/ 即可，代码不用改。
  */
 val copyPresetBackgrounds by tasks.registering(Sync::class) {
-    from(rootProject.file("../Android/src/main/res/drawable")) {
+    from(rootProject.file("../../legacy/android-java/src/main/res/drawable")) {
         include("bg*.jpg")
     }
     into(layout.buildDirectory.dir("generated/presetBackgrounds/backgrounds"))
