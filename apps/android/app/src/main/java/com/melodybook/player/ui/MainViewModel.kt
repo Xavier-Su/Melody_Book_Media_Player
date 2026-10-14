@@ -8,6 +8,8 @@ import com.melodybook.player.data.AppSettings
 import com.melodybook.player.data.BackgroundMode
 import com.melodybook.player.data.DarkMode
 import com.melodybook.player.data.PresetBackgrounds
+import com.melodybook.player.data.SongMetadata
+import com.melodybook.player.data.lyrics.LrclibItem
 import com.melodybook.player.data.lyrics.Lyrics
 import com.melodybook.player.data.ScanFilter
 import com.melodybook.player.data.Pinyin
@@ -22,6 +24,7 @@ import com.melodybook.player.ui.theme.Skins
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +54,15 @@ data class LibraryUiState(
     val sortOrder: SortOrder = SortOrder.TITLE,
 )
 
+/** 手动搜索歌词弹层的状态。[songId] 是打开弹层时正在播放的歌，选歌词时存到这首上。 */
+data class LyricsSearchState(
+    val songId: Long,
+    val query: String,
+    val items: List<LrclibItem> = emptyList(),
+    val loading: Boolean = false,
+    val error: String? = null,
+)
+
 sealed interface LyricsUiState {
     data object None : LyricsUiState
     data class Loading(val songId: Long) : LyricsUiState
@@ -65,6 +77,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val library = container.library
     private val settingsRepo = container.settings
     private val lyricsRepo = container.lyrics
+    private val weatherRepo = container.weather
     val sleepTimer: SleepTimer = container.sleepTimer
 
     val player = PlayerConnection(app, viewModelScope, library, settingsRepo)
@@ -103,19 +116,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
 
-    /** 当前歌曲的歌词。随当前歌曲和歌词文件夹设置变化自动重新查找。 */
+    /** 手动换歌词后加一，触发歌词重新查找。 */
+    private val lyricsRefresh = MutableStateFlow(0)
+
+    /** 当前歌曲的歌词。随当前歌曲、歌词文件夹、联网开关变化自动重新查找。 */
     val lyrics: StateFlow<LyricsUiState> = combine(
         player.state.map { it.currentId }.distinctUntilChanged(),
         settings.filterNotNull().map { it.lyricsFolderUri }.distinctUntilChanged(),
-    ) { id, folder -> id to folder }
-        .transformLatest { (id, folder) ->
+        settings.filterNotNull().map { it.onlineLyrics }.distinctUntilChanged(),
+        lyricsRefresh,
+    ) { id, folder, online, _ -> Triple(id, folder, online) }
+        .transformLatest { (id, folder, online) ->
             if (id == null) {
                 emit(LyricsUiState.None)
                 return@transformLatest
             }
             emit(LyricsUiState.Loading(id))
             val song = library.getById(id)
-            val result = song?.let { lyricsRepo.load(it, folder) }
+            val result = song?.let { lyricsRepo.load(it, folder, online) }
             emit(
                 if (result?.lyrics != null) LyricsUiState.Loaded(id, result.lyrics, result.source)
                 else LyricsUiState.Missing(id),
@@ -268,6 +286,102 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         lyricsRepo.invalidate()
         settingsRepo.setLyricsFolder(uri)
     }
+
+    // ---------------------------------------------------------------- 联网：在线歌词
+
+    fun setOnlineLyrics(enabled: Boolean) = launchIo { settingsRepo.setOnlineLyrics(enabled) }
+
+    private val _lyricsSearch = MutableStateFlow<LyricsSearchState?>(null)
+    /** null 表示搜索弹层没有打开。 */
+    val lyricsSearch: StateFlow<LyricsSearchState?> = _lyricsSearch.asStateFlow()
+
+    fun openLyricsSearch() {
+        val s = player.state.value
+        val id = s.currentId ?: return
+        val query = if (s.artist.isNotBlank() && s.artist != SongMetadata.UNKNOWN_ARTIST) "${s.title} ${s.artist}" else s.title
+        _lyricsSearch.value = LyricsSearchState(songId = id, query = query)
+        searchLyrics(query)
+    }
+
+    fun closeLyricsSearch() {
+        _lyricsSearch.value = null
+    }
+
+    fun searchLyrics(query: String) {
+        val cur = _lyricsSearch.value ?: return
+        val q = query.trim()
+        if (q.isEmpty()) return
+        _lyricsSearch.value = cur.copy(query = q, loading = true, error = null)
+        viewModelScope.launch {
+            val next = try {
+                val items = lyricsRepo.search(q)
+                _lyricsSearch.value?.copy(items = items, loading = false)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lyricsSearch.value?.copy(items = emptyList(), loading = false, error = "联网失败，请检查网络后重试")
+            }
+            // 弹层可能在等待期间被关掉了
+            if (next != null && _lyricsSearch.value != null) _lyricsSearch.value = next
+        }
+    }
+
+    fun applyLyrics(item: LrclibItem) {
+        val songId = _lyricsSearch.value?.songId ?: return
+        viewModelScope.launch {
+            val song = library.getById(songId)
+            if (song != null && lyricsRepo.saveManual(song, item)) {
+                _lyricsSearch.value = null
+                lyricsRefresh.value++
+                _messages.send("已使用“${item.title} - ${item.artist}”的歌词")
+            } else {
+                _messages.send("这条歌词无法使用")
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- 联网：天气
+
+    fun setWeatherEnabled(enabled: Boolean) = launchIo { settingsRepo.setWeatherEnabled(enabled) }
+
+    /** 城市名查坐标并保存。找不到或联网失败时给出提示。 */
+    fun setWeatherCity(name: String) {
+        val city = name.trim()
+        if (city.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val place = weatherRepo.geocode(city)
+                if (place == null) {
+                    _messages.send("找不到“$city”，换个城市名试试")
+                } else {
+                    settingsRepo.setWeatherPlace(place)
+                    _messages.send("天气城市：${place.name}")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _messages.send("联网失败，请检查网络后重试")
+            }
+        }
+    }
+
+    /** 主页显示的天气文字。开关关闭、没设城市、或请求失败时为 null（不显示）。 */
+    val weatherText: StateFlow<String?> = settings.filterNotNull()
+        .map { if (it.weatherEnabled) it.weatherPlace else null }
+        .distinctUntilChanged()
+        .transformLatest { place ->
+            if (place == null) {
+                emit(null)
+                return@transformLatest
+            }
+            while (true) {
+                val w = weatherRepo.current(place)
+                // 失败时保留上一次的显示，较短间隔后重试
+                if (w != null) emit(w.display)
+                delay(if (w != null) 30 * 60_000L else 2 * 60_000L)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun showMessage(text: String) {
         viewModelScope.launch { _messages.send(text) }

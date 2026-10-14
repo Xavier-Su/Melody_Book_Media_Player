@@ -10,6 +10,8 @@ import android.provider.MediaStore
 import android.util.LruCache
 import com.melodybook.player.data.Song
 import com.melodybook.player.data.SongMetadata
+import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -19,20 +21,31 @@ import kotlinx.coroutines.withContext
  * 2. 用户在设置里选的“歌词文件夹”（不需要额外权限，用系统文件选择器授权）；
  * 3. 与歌曲同目录、同名的 .lrc（通过媒体库查找；Android 13+ 媒体库可能不收录 .lrc，所以第 2 步更可靠）。
  */
-class LyricsRepository(context: Context) {
+class LyricsRepository(context: Context, private val online: LrclibClient = LrclibClient()) {
 
     private val resolver: ContentResolver = context.applicationContext.contentResolver
-    private val cache = LruCache<Long, Result>(64)
+    private val cache = LruCache<String, Result>(64)
+
+    /** 联网下载的歌词存成文件，下次不再联网。手动选的放 manual，优先级高于内嵌和自动下载的。 */
+    private val manualDir = File(context.applicationContext.filesDir, "lyrics/manual")
+    private val autoDir = File(context.applicationContext.filesDir, "lyrics/auto")
 
     /** 结果里带上来源，便于界面提示。 */
     data class Result(val lyrics: Lyrics?, val source: String?)
 
-    suspend fun load(song: Song, lyricsFolder: String?): Result = withContext(Dispatchers.IO) {
-        cache.get(song.id)?.let { return@withContext it }
-        val result = find(song, lyricsFolder)
-        cache.put(song.id, result)
-        result
-    }
+    /**
+     * [allowOnline] 为 false 时不会发任何网络请求，但之前下载保存的歌词仍会显示（那已经是本地文件）。
+     * 缓存键带上联网开关，开关切换后不会读到旧状态下的“没有歌词”。
+     */
+    suspend fun load(song: Song, lyricsFolder: String?, allowOnline: Boolean): Result =
+        withContext(Dispatchers.IO) {
+            val key = cacheKey(song.id, allowOnline)
+            cache.get(key)?.let { return@withContext it }
+            val result = find(song, lyricsFolder, allowOnline)
+            // 联网失败（网络错误）不缓存，换首歌再回来可以重试
+            if (result.lyrics != null || !allowOnline || result.source != FAILED) cache.put(key, result)
+            result
+        }
 
     /** 用户更换歌词文件夹后清空缓存。 */
     fun invalidate() {
@@ -40,7 +53,24 @@ class LyricsRepository(context: Context) {
         treeCache = null
     }
 
-    private fun find(song: Song, lyricsFolder: String?): Result {
+    /** 手动搜索，阻塞网络调用已放在 IO 线程。网络或解析失败抛 [java.io.IOException]。 */
+    suspend fun search(query: String): List<LrclibItem> = withContext(Dispatchers.IO) { online.search(query) }
+
+    /** 保存用户手动选的歌词。内容无法解析时返回 false。 */
+    suspend fun saveManual(song: Song, item: LrclibItem): Boolean = withContext(Dispatchers.IO) {
+        val text = item.text ?: return@withContext false
+        if (LrcParser.parse(text) == null) return@withContext false
+        write(File(manualDir, "${song.id}.lrc"), text)
+        cache.remove(cacheKey(song.id, true))
+        cache.remove(cacheKey(song.id, false))
+        true
+    }
+
+    private fun cacheKey(id: Long, allowOnline: Boolean) = "$id/$allowOnline"
+
+    private fun find(song: Song, lyricsFolder: String?, allowOnline: Boolean): Result {
+        readSaved(File(manualDir, "${song.id}.lrc"))?.let { return Result(it, "手动选择的歌词") }
+
         EmbeddedLyrics.read(song.format) { resolver.openInputStream(Uri.parse(song.uri)) }
             ?.let(LrcParser::parse)
             ?.let { return Result(it, "内嵌歌词") }
@@ -60,7 +90,42 @@ class LyricsRepository(context: Context) {
         runCatching { findBesideSong(song, candidates) }.getOrNull()
             ?.let { return Result(it, "同名 LRC") }
 
-        return Result(null, null)
+        val autoFile = File(autoDir, "${song.id}.lrc")
+        readSaved(autoFile)?.let { return Result(it, "在线歌词") }
+
+        if (!allowOnline) return Result(null, null)
+        return try {
+            val artist = song.artist.takeIf { it.isNotBlank() && it != SongMetadata.UNKNOWN_ARTIST }
+            val item = online.lookup(song.title, artist, song.durationMs)
+            val lyrics = item?.text?.let(LrcParser::parse)
+            if (lyrics != null) {
+                write(autoFile, item.text!!)
+                Result(lyrics, "在线歌词")
+            } else {
+                Result(null, null)
+            }
+        } catch (e: IOException) {
+            Result(null, FAILED)
+        }
+    }
+
+    private fun readSaved(file: File): Lyrics? =
+        if (file.isFile) runCatching { LrcParser.parse(file.readText()) }.getOrNull() else null
+
+    /** 先写临时文件再改名，避免中途失败留下半个文件。 */
+    private fun write(file: File, text: String) {
+        file.parentFile?.mkdirs()
+        val tmp = File(file.parentFile, file.name + ".tmp")
+        tmp.writeText(text)
+        if (!tmp.renameTo(file)) {
+            file.writeText(text)
+            tmp.delete()
+        }
+    }
+
+    private companion object {
+        /** 内部标记：联网请求失败（区别于“查到了但没有”）。 */
+        const val FAILED = "__failed__"
     }
 
     private fun readLrc(uri: Uri): Lyrics? {

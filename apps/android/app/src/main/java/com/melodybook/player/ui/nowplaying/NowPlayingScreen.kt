@@ -89,6 +89,8 @@ fun NowPlayingScreen(
     onOpenSleepTimer: () -> Unit,
     onNoLyrics: () -> Unit,
     onPickLyricsFolder: () -> Unit,
+    onlineLyrics: Boolean,
+    onSearchLyrics: () -> Unit,
     spectrumEnabled: Boolean,
     onToggleSpectrum: () -> Unit,
 ) {
@@ -96,7 +98,8 @@ fun NowPlayingScreen(
     MaterialTheme(colorScheme = rememberAlbumColorScheme(state.artworkUri)) {
         NowPlayingContent(
             state, position, lyrics, sleepTimerLabel, onCollapse, onTogglePlay, onPrevious, onNext, onSeek,
-            onCyclePlayMode, onOpenSleepTimer, onNoLyrics, onPickLyricsFolder, spectrumEnabled, onToggleSpectrum,
+            onCyclePlayMode, onOpenSleepTimer, onNoLyrics, onPickLyricsFolder, onlineLyrics, onSearchLyrics,
+            spectrumEnabled, onToggleSpectrum,
         )
     }
 }
@@ -117,6 +120,8 @@ private fun NowPlayingContent(
     onOpenSleepTimer: () -> Unit,
     onNoLyrics: () -> Unit,
     onPickLyricsFolder: () -> Unit,
+    onlineLyrics: Boolean,
+    onSearchLyrics: () -> Unit,
     spectrumEnabled: Boolean,
     onToggleSpectrum: () -> Unit,
 ) {
@@ -137,7 +142,8 @@ private fun NowPlayingContent(
 
     fun openLyrics() {
         when (lyrics) {
-            is LyricsUiState.Missing -> onNoLyrics()
+            // 开了在线歌词时，没歌词也进歌词页，那里有搜索入口
+            is LyricsUiState.Missing -> if (onlineLyrics) scope.launch { pager.animateScrollToPage(PAGE_LYRICS) } else onNoLyrics()
             else -> scope.launch { pager.animateScrollToPage(PAGE_LYRICS) }
         }
     }
@@ -206,6 +212,8 @@ private fun NowPlayingContent(
                         position = position,
                         onSeek = onSeek,
                         onPickLyricsFolder = onPickLyricsFolder,
+                        onlineLyrics = onlineLyrics,
+                        onSearchLyrics = onSearchLyrics,
                     )
                 }
             }

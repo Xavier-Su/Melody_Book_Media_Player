@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
@@ -91,6 +93,10 @@ fun LibraryScreen(
     onOpenScan: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenSleepTimer: () -> Unit,
+    /** 天气文字，null 表示不显示（未开启、未设城市或请求失败）。 */
+    weatherText: String?,
+    onlineActive: Boolean,
+    onOpenOnline: () -> Unit,
 ) {
     val spacing = MelodyTokens.spacing
     val listState = rememberLazyListState()
@@ -105,9 +111,15 @@ fun LibraryScreen(
             title = {
                 Column {
                     Text("音书", style = MaterialTheme.typography.titleLarge)
-                    if (state.totalCount > 0) {
+                    val subtitle = listOfNotNull(
+                        if (state.totalCount > 0) "${state.totalCount} 首本地音乐" else null,
+                        weatherText,
+                    ).joinToString(" · ")
+                    if (subtitle.isNotEmpty()) {
                         Text(
-                            "${state.totalCount} 首本地音乐",
+                            subtitle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -120,6 +132,14 @@ fun LibraryScreen(
                         Icons.Rounded.Timer,
                         contentDescription = "定时关闭",
                         tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onOpenOnline) {
+                    Icon(
+                        Icons.Rounded.Cloud,
+                        contentDescription = "联网功能",
+                        tint = if (onlineActive) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

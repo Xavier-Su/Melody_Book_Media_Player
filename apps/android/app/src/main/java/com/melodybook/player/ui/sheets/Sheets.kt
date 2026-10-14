@@ -64,6 +64,16 @@ import com.melodybook.player.data.DarkMode
 import com.melodybook.player.data.PresetBackgrounds
 import kotlin.math.roundToInt
 import com.melodybook.player.data.ScanFilter
+import com.melodybook.player.data.SongMetadata
+import com.melodybook.player.data.lyrics.LrclibItem
+import com.melodybook.player.ui.LyricsSearchState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.ImeAction
 import com.melodybook.player.playback.SleepTimer
 import com.melodybook.player.ui.theme.MelodyTokens
 import com.melodybook.player.ui.theme.Skin
@@ -161,6 +171,129 @@ private fun minutesLabel(m: Int): String = when {
     m < 60 -> "$m 分钟"
     m % 60 == 0 -> "${m / 60} 小时"
     else -> "${m / 60} 小时 ${m % 60} 分"
+}
+
+// ------------------------------------------------------------------ 联网功能
+
+@Composable
+fun OnlineSheet(
+    settings: AppSettings,
+    onOnlineLyrics: (Boolean) -> Unit,
+    onWeather: (Boolean) -> Unit,
+    onCity: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val spacing = MelodyTokens.spacing
+    var city by remember { mutableStateOf(settings.weatherPlace?.name.orEmpty()) }
+    MelodySheet("联网功能", onDismiss) {
+        Text(
+            "默认全部关闭，关闭时不会发出任何网络请求。播放和曲库始终完全离线。",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SectionLabel("在线歌词")
+        SwitchRow("本地找不到时联网补全歌词", settings.onlineLyrics, onOnlineLyrics)
+        Text(
+            "向 lrclib.net 发送歌名、歌手和时长来查找歌词。下载过的歌词会保存在本机，不会重复联网。" +
+                "自动匹配不对时，可以在歌词页点搜索自己重新选。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SectionLabel("主页天气")
+        SwitchRow("在主页显示天气和温度", settings.weatherEnabled, onWeather)
+        Text(
+            "向 open-meteo.com 发送你设置的城市坐标。不使用定位权限。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (settings.weatherEnabled) {
+            Spacer(Modifier.height(spacing.md))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                OutlinedTextField(
+                    value = city,
+                    onValueChange = { city = it },
+                    label = { Text("城市") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { onCity(city) }),
+                    modifier = Modifier.weight(1f),
+                )
+                Button(onClick = { onCity(city) }, enabled = city.isNotBlank()) { Text("设置") }
+            }
+            if (settings.weatherPlace == null) {
+                Text(
+                    "还没设置城市，设置后主页才会显示天气。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = spacing.xs),
+                )
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------ 搜索歌词
+
+@Composable
+fun LyricsSearchSheet(
+    state: LyricsSearchState,
+    onSearch: (String) -> Unit,
+    onPick: (LrclibItem) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val spacing = MelodyTokens.spacing
+    var query by remember { mutableStateOf(state.query) }
+    MelodySheet("搜索在线歌词", onDismiss) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            label = { Text("歌名 歌手") },
+            singleLine = true,
+            trailingIcon = {
+                IconButton(onClick = { onSearch(query) }) {
+                    Icon(Icons.Rounded.Search, contentDescription = "搜索")
+                }
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onSearch(query) }),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(spacing.md))
+        when {
+            state.loading -> CircularProgressIndicator()
+            state.error != null -> Text(
+                state.error,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+            state.items.isEmpty() -> Text(
+                "没有找到，换个关键词试试。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            else -> state.items.forEach { item -> LyricsResultRow(item) { onPick(item) } }
+        }
+    }
+}
+
+@Composable
+private fun LyricsResultRow(item: LrclibItem, onClick: () -> Unit) {
+    val kind = if (item.synced != null) "滚动歌词" else "纯文本"
+    val detail = listOf(item.artist, item.album).filter { it.isNotBlank() }.joinToString(" · ")
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClickLabel = "使用这条歌词", onClick = onClick)
+            .padding(vertical = MelodyTokens.spacing.sm),
+    ) {
+        Text(item.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+        Text(
+            "$detail · ${SongMetadata.formatDuration(item.durationSec * 1000L)} · $kind",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
 }
 
 // ------------------------------------------------------------------ 扫描

@@ -53,12 +53,14 @@ import com.melodybook.player.ui.components.MiniPlayer
 import com.melodybook.player.ui.library.LibraryScreen
 import com.melodybook.player.ui.nowplaying.NowPlayingScreen
 import com.melodybook.player.ui.sheets.AppearanceSheet
+import com.melodybook.player.ui.sheets.LyricsSearchSheet
+import com.melodybook.player.ui.sheets.OnlineSheet
 import com.melodybook.player.ui.sheets.ScanSheet
 import com.melodybook.player.ui.sheets.SleepTimerSheet
 import com.melodybook.player.ui.theme.MelodyTokens
 import kotlinx.coroutines.delay
 
-private enum class Sheet { NONE, SCAN, APPEARANCE, SLEEP }
+private enum class Sheet { NONE, SCAN, APPEARANCE, SLEEP, ONLINE }
 
 private fun audioPermission(): String =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_AUDIO
@@ -83,6 +85,8 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
     val timerState by vm.sleepTimer.state.collectAsStateWithLifecycle()
     val queryText by vm.queryText.collectAsStateWithLifecycle()
     val lyrics by vm.lyrics.collectAsStateWithLifecycle()
+    val weatherText by vm.weatherText.collectAsStateWithLifecycle()
+    val lyricsSearch by vm.lyricsSearch.collectAsStateWithLifecycle()
 
     // 播放进度只在界面可见时轮询
     val positionFlow = remember(vm) { vm.player.positionFlow() }
@@ -261,6 +265,9 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
                 onOpenScan = { sheet = Sheet.SCAN },
                 onOpenAppearance = { sheet = Sheet.APPEARANCE },
                 onOpenSleepTimer = { sheet = Sheet.SLEEP },
+                weatherText = weatherText,
+                onlineActive = settings.onlineLyrics || settings.weatherEnabled,
+                onOpenOnline = { sheet = Sheet.ONLINE },
             )
         }
 
@@ -300,6 +307,8 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
                     )
                 },
                 onPickLyricsFolder = { lyricsFolderPicker.launch(null) },
+                onlineLyrics = settings.onlineLyrics,
+                onSearchLyrics = vm::openLyricsSearch,
                 spectrumEnabled = settings.spectrumEnabled,
                 onToggleSpectrum = { vm.setSpectrum(!settings.spectrumEnabled) },
                 onCollapse = { expanded = false },
@@ -368,6 +377,13 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
             },
             onDismiss = { sheet = Sheet.NONE },
         )
+        Sheet.ONLINE -> OnlineSheet(
+            settings = settings,
+            onOnlineLyrics = vm::setOnlineLyrics,
+            onWeather = vm::setWeatherEnabled,
+            onCity = vm::setWeatherCity,
+            onDismiss = { sheet = Sheet.NONE },
+        )
         Sheet.SLEEP -> SleepTimerSheet(
             state = timerState,
             remainingLabel = timerLabel,
@@ -375,6 +391,15 @@ fun MelodyAppUi(vm: MainViewModel, settings: AppSettings) {
             onAfterCurrent = vm::stopAfterCurrent,
             onCancel = vm::cancelSleepTimer,
             onDismiss = { sheet = Sheet.NONE },
+        )
+    }
+
+    lyricsSearch?.let { s ->
+        LyricsSearchSheet(
+            state = s,
+            onSearch = vm::searchLyrics,
+            onPick = vm::applyLyrics,
+            onDismiss = vm::closeLyricsSearch,
         )
     }
 }

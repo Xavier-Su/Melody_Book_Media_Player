@@ -19,8 +19,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Notes
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -55,23 +58,34 @@ fun LyricsPage(
     position: State<Long>,
     onSeek: (Long) -> Unit,
     onPickLyricsFolder: () -> Unit,
+    /** 设置里开了在线歌词才为 true：此时显示“搜索在线歌词”入口。 */
+    onlineLyrics: Boolean,
+    onSearchLyrics: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when (state) {
             LyricsUiState.None -> Unit
             is LyricsUiState.Loading -> CircularProgressIndicator()
-            is LyricsUiState.Missing -> NoLyrics(onPickLyricsFolder)
-            is LyricsUiState.Loaded -> when (val l = state.lyrics) {
-                is Lyrics.Synced -> SyncedLyrics(l.lines, position, onSeek)
-                is Lyrics.Plain -> PlainLyrics(l.lines)
+            is LyricsUiState.Missing -> NoLyrics(onPickLyricsFolder, onlineLyrics, onSearchLyrics)
+            is LyricsUiState.Loaded -> {
+                when (val l = state.lyrics) {
+                    is Lyrics.Synced -> SyncedLyrics(l.lines, position, onSeek)
+                    is Lyrics.Plain -> PlainLyrics(l.lines)
+                }
+                // 自动匹配错了，可以自己搜
+                if (onlineLyrics) {
+                    IconButton(onClick = onSearchLyrics, modifier = Modifier.align(Alignment.TopEnd)) {
+                        Icon(Icons.Rounded.Search, contentDescription = "搜索其它歌词")
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun NoLyrics(onPickLyricsFolder: () -> Unit) {
+private fun NoLyrics(onPickLyricsFolder: () -> Unit, onlineLyrics: Boolean, onSearchLyrics: () -> Unit) {
     val spacing = MelodyTokens.spacing
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -93,6 +107,10 @@ private fun NoLyrics(onPickLyricsFolder: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(spacing.lg))
+        if (onlineLyrics) {
+            Button(onClick = onSearchLyrics) { Text("搜索在线歌词") }
+            Spacer(Modifier.height(spacing.sm))
+        }
         OutlinedButton(onClick = onPickLyricsFolder) { Text("选择歌词文件夹") }
     }
 }

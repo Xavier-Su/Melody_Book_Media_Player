@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.doublePreferencesKey
+import com.melodybook.player.data.weather.WeatherPlace
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -40,6 +42,11 @@ data class AppSettings(
     val playMode: PlayMode = PlayMode.LIST_LOOP,
     /** 播放页是否显示频谱。 */
     val spectrumEnabled: Boolean = true,
+    /** 联网补全歌词（LRCLIB）。默认关闭。 */
+    val onlineLyrics: Boolean = false,
+    /** 主页显示天气（Open-Meteo）。默认关闭。 */
+    val weatherEnabled: Boolean = false,
+    val weatherPlace: WeatherPlace? = null,
 ) {
     /** 当前实际要显示的背景图（Coil 可直接加载的地址），null 表示不显示。 */
     val backgroundModel: String?
@@ -81,6 +88,11 @@ class SettingsRepository(context: Context) {
         val scanFilter = stringPreferencesKey("scan_filter")
         val playMode = stringPreferencesKey("play_mode")
         val spectrum = booleanPreferencesKey("spectrum")
+        val onlineLyrics = booleanPreferencesKey("online_lyrics")
+        val weather = booleanPreferencesKey("weather")
+        val weatherName = stringPreferencesKey("weather_name")
+        val weatherLat = doublePreferencesKey("weather_lat")
+        val weatherLon = doublePreferencesKey("weather_lon")
         val queue = stringPreferencesKey("queue")
         val queueIndex = intPreferencesKey("queue_index")
         val position = longPreferencesKey("position")
@@ -105,6 +117,14 @@ class SettingsRepository(context: Context) {
             scanFilter = enumOr(p[Keys.scanFilter], ScanFilter.ALL),
             playMode = enumOr(p[Keys.playMode], PlayMode.LIST_LOOP),
             spectrumEnabled = p[Keys.spectrum] ?: true,
+            onlineLyrics = p[Keys.onlineLyrics] ?: false,
+            weatherEnabled = p[Keys.weather] ?: false,
+            weatherPlace = run {
+                val name = p[Keys.weatherName]
+                val lat = p[Keys.weatherLat]
+                val lon = p[Keys.weatherLon]
+                if (name != null && lat != null && lon != null) WeatherPlace(name, lat, lon) else null
+            },
         )
     }
 
@@ -117,6 +137,14 @@ class SettingsRepository(context: Context) {
     suspend fun setScanFilter(filter: ScanFilter) = store.edit { it[Keys.scanFilter] = filter.name }
     suspend fun setPlayMode(mode: PlayMode) = store.edit { it[Keys.playMode] = mode.name }
     suspend fun setSpectrum(enabled: Boolean) = store.edit { it[Keys.spectrum] = enabled }
+    suspend fun setOnlineLyrics(enabled: Boolean) = store.edit { it[Keys.onlineLyrics] = enabled }
+    suspend fun setWeatherEnabled(enabled: Boolean) = store.edit { it[Keys.weather] = enabled }
+
+    suspend fun setWeatherPlace(place: WeatherPlace) = store.edit {
+        it[Keys.weatherName] = place.name
+        it[Keys.weatherLat] = place.lat
+        it[Keys.weatherLon] = place.lon
+    }
 
     /** 选了相册图片就自动切到“相册图片”模式；清除时如果正在用相册图则关掉背景。 */
     suspend fun setWallpaper(uri: String?) = store.edit {

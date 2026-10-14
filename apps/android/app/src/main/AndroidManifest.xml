@@ -13,6 +13,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 仅“联网功能”（天气、在线歌词）使用；设置里默认关闭，关闭时不会发出任何请求 -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".MelodyApp"
